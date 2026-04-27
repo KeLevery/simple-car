@@ -1,0 +1,32 @@
+package com.simplecar.model.entity;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
+import lombok.Data;
+import java.time.LocalDateTime;
+
+@Data
+@TableName("community_post")
+public class CommunityPost {
+    @TableId(type = IdType.AUTO)
+    private Long id;
+    private Long userId;
+    private String content;
+    private String images;
+    private Integer likeCount;
+    private Integer commentCount;
+    private Integer shareCount;
+    private Integer isHot;
+    private LocalDateTime createTime;
+
+    @TableField(exist = false)
+    private String nickname;
+    @TableField(exist = false)
+    private String avatar;
+    @TableField(exist = false)
+    private Boolean isLiked;
+    @TableField(exist = false)
+    private Integer isLikedCount;
+}

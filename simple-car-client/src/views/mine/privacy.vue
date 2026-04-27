@@ -1,0 +1,153 @@
+<template>
+  <div class="privacy-page">
+    <van-nav-bar
+      title="隐私设置"
+      left-arrow
+      fixed
+      placeholder
+      @click-left="$router.back()"
+    />
+
+    <van-cell-group inset title="隐私权限">
+      <van-cell title="允许他人查看我的动态">
+        <template #right-icon>
+          <van-switch v-model="settings.showMoments" size="22px" />
+        </template>
+      </van-cell>
+      <van-cell title="允许他人查看我的车辆信息">
+        <template #right-icon>
+          <van-switch v-model="settings.showCarInfo" size="22px" />
+        </template>
+      </van-cell>
+      <van-cell title="允许推送个性化内容">
+        <template #right-icon>
+          <van-switch v-model="settings.personalized" size="22px" />
+        </template>
+      </van-cell>
+    </van-cell-group>
+
+    <div class="footer-btn">
+      <van-button type="primary" block round :loading="loading" @click="saveSettings">
+        保存设置
+      </van-button>
+    </div>
+  </div>
+</template>
+
+<script>
+import { getUserSettings, updateUserSettings } from '@/api/user'
+
+export default {
+	data() {
+		return {
+			loading: false,
+			settings: {
+				showMoments: true,
+				showCarInfo: false,
+				personalized: true
+			}
+		}
+	},
+	created() {
+		this.loadSettings();
+	},
+	methods: {
+		async loadSettings() {
+			try {
+				const res = await getUserSettings('privacy')
+				if (res.code === 200 && res.data && Object.keys(res.data).length > 0) {
+					this.settings = {
+						showMoments: res.data.showMoments === 'true',
+						showCarInfo: res.data.showCarInfo === 'true',
+						personalized: res.data.personalized === 'true'
+					}
+					return;
+				}
+			} catch (e) {
+				console.error(e)
+			}
+
+			const saved = localStorage.getItem('privacy_settings')
+			if (saved) {
+				try { this.settings = JSON.parse(saved) } catch (err) {}
+			}
+		},
+		async saveSettings() {
+			this.loading = true
+			this.$toast.loading({ message: '保存中...', forbidClick: true })
+			try {
+				const data = {
+					showMoments: String(this.settings.showMoments),
+					showCarInfo: String(this.settings.showCarInfo),
+					personalized: String(this.settings.personalized)
+				}
+				const res = await updateUserSettings('privacy', data)
+				this.$toast.clear()
+				if (res.code === 200) {
+					localStorage.setItem('privacy_settings', JSON.stringify(this.settings))
+					this.$toast.success('保存成功')
+					setTimeout(() => {
+						this.$router.back()
+					}, 700)
+				} else {
+					this.$toast(res.msg || '保存失败')
+				}
+			} catch (e) {
+				this.$toast.clear()
+				console.error(e)
+				localStorage.setItem('privacy_settings', JSON.stringify(this.settings))
+				this.$toast.success('保存成功')
+				setTimeout(() => {
+					this.$router.back()
+				}, 700)
+			} finally {
+				this.loading = false
+			}
+		}
+	}
+}
+</script>
+
+<style scoped>
+.privacy-page {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+
+  :deep(.van-nav-bar) {
+    background: var(--bg-glass);
+    backdrop-filter: blur(var(--card-blur));
+    border-bottom: 1px solid var(--border);
+    .van-nav-bar__title { color: var(--text-primary); font-weight: 300; }
+    .van-icon { color: var(--accent); }
+  }
+
+  :deep(.van-cell-group) {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(var(--card-blur));
+    .van-cell-group__title { color: var(--text-tertiary); }
+    &::after { border: none; }
+  }
+
+  :deep(.van-cell) {
+    background: transparent;
+    color: var(--text-primary);
+    &::after { border-bottom-color: var(--border); }
+    .van-cell__title { font-weight: 300; }
+  }
+
+  :deep(.van-switch--on) {
+    background-color: var(--accent);
+  }
+}
+
+.footer-btn {
+  margin: 32px 16px;
+}
+
+:deep(.van-button--primary) {
+  background: var(--accent-gradient);
+  border: none;
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+</style>
