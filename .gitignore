@@ -17,6 +17,7 @@ Thumbs.db
 # Logs
 *.log
 *.md
+!README.md
 任务书*
 接口文档*
 ~$*.docx
@@ -27,6 +28,7 @@ pnpm-debug.log*
 # Node / Vue frontend
 node_modules/
 dist/
+*.tsbuildinfo
 
 # Java / Maven backend
 target/
