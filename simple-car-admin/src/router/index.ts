@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { adminApi } from '@/api/admin'
 import AdminShell from '@/components/AdminShell.vue'
 import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/DashboardView.vue'
@@ -31,13 +32,35 @@ export const router = createRouter({
   ]
 })
 
-router.beforeEach((to) => {
+const verifiedTokens = new Set<string>()
+
+async function verifyAdminToken(token: string) {
+  if (verifiedTokens.has(token)) return true
+  try {
+    await adminApi.session()
+    verifiedTokens.add(token)
+    return true
+  } catch {
+    verifiedTokens.delete(token)
+    window.localStorage.removeItem('adminToken')
+    return false
+  }
+}
+
+router.beforeEach(async (to) => {
   const token = window.localStorage.getItem('adminToken')
   if (to.meta.requiresAuth && !token) {
     return { name: 'login' }
   }
   if (to.name === 'login' && token) {
-    return { name: 'dashboard' }
+    const valid = await verifyAdminToken(token)
+    return valid ? { name: 'dashboard' } : true
+  }
+  if (to.meta.requiresAuth && token) {
+    const valid = await verifyAdminToken(token)
+    if (!valid) {
+      return { name: 'login' }
+    }
   }
   return true
 })

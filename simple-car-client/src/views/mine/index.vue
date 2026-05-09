@@ -134,55 +134,49 @@
 	</div>
 </template>
 
-<script>
+<script setup>
 import Tabbar from "@/components/Tabbar.vue"
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-export default {
-	components: {
-		Tabbar
-	},
-	data() {
-		return {
-			nickName: '',
-			phone: '',
-			avatar: 'https://img01.yzcdn.cn/vant/cat.jpeg',
-			totalMileage: '0',
-			totalCharge: '0',
-			carCount: '0',
-			hasNewMsg: true
-		}
-	},
-	created() {
-		this.initProfile();
-	},
-	methods: {
-		initProfile() {
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const nickName = ref('')
+const phone = ref('')
+const avatar = ref('https://img01.yzcdn.cn/vant/cat.jpeg')
+const totalMileage = ref('0')
+const totalCharge = ref('0')
+const carCount = ref('0')
+const hasNewMsg = ref(true)
+function initProfile() {
 			const userInfo = window.localStorage.getItem('userInfo');
 			if (userInfo) {
 				const user = JSON.parse(userInfo);
-				this.nickName = user.nickName || user.userName;
-				this.phone = user.phonenumber ? user.phonenumber.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '';
-				this.avatar = user.avatar || '';
+				nickName.value = user.nickName || user.userName;
+				phone.value = user.phonenumber ? user.phonenumber.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '';
+				avatar.value = user.avatar || '';
 			}
 			const carList = window.localStorage.getItem('carList');
 			if (carList) {
 				const cars = JSON.parse(carList);
-				this.carCount = cars.length;
+				carCount.value = cars.length;
 			}
 			const carInfo = window.localStorage.getItem('carInfo');
 			if (carInfo) {
 				const car = JSON.parse(carInfo);
-				this.totalMileage = car.totalMileage || '0';
+				totalMileage.value = car.totalMileage || '0';
 			}
-		},
-		gotoPage(path) {
-			this.$router.push({ path });
-		},
-		contactCS() {
-			this.$toast('客服功能开发中');
-		},
-		clearCache() {
-			this.$dialog.confirm({
+		}
+function gotoPage(path) {
+			router.push({ path });
+		}
+function contactCS() {
+			toast('客服功能开发中');
+		}
+function clearCache() {
+			dialog.confirm({
 				title: '确认',
 				message: '确定要清除缓存吗？这将清除本地存储的车辆和用户数据（不影响登录状态）',
 				confirmButtonText: '清除',
@@ -190,11 +184,11 @@ export default {
 			}).then(() => {
 				// 清除业务缓存，保留登录态
 				window.localStorage.removeItem('notification_settings');
-				this.$toast.success('缓存已清除');
+				toast.success('缓存已清除');
 			}).catch(() => {});
-		},
-		logout() {
-			this.$dialog.confirm({
+		}
+function logout() {
+			dialog.confirm({
 				title: '退出登录',
 				message: '确定要退出当前账号吗？',
 				confirmButtonText: '确认退出',
@@ -205,11 +199,10 @@ export default {
 				window.localStorage.removeItem('userInfo');
 				window.localStorage.removeItem('carInfo');
 				window.localStorage.removeItem('carList');
-				this.$router.push('/');
+				router.push('/');
 			}).catch(() => {});
 		}
-	}
-}
+initProfile();
 </script>
 
 <style lang="scss" scoped>

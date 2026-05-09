@@ -39,30 +39,27 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { getUserSettings, updateUserSettings } from '@/api/user'
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-export default {
-	data() {
-		return {
-			loading: false,
-			settings: {
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const loading = ref(false)
+const settings = ref({
 				system: true,
 				maintenance: true,
 				charging: true,
 				community: false
-			}
-		}
-	},
-	created() {
-		this.loadSettings();
-	},
-	methods: {
-		async loadSettings() {
+			})
+async function loadSettings() {
 			try {
 				const res = await getUserSettings('notification')
 				if (res.code === 200 && res.data && Object.keys(res.data).length > 0) {
-					this.settings = {
+					settings.value = {
 						system: res.data.system === 'true',
 						maintenance: res.data.maintenance === 'true',
 						charging: res.data.charging === 'true',
@@ -76,44 +73,43 @@ export default {
 
 			const saved = localStorage.getItem('notification_settings')
 			if (saved) {
-				try { this.settings = JSON.parse(saved) } catch (err) {}
-			}
-		},
-		async saveSettings() {
-			this.loading = true
-			this.$toast.loading({ message: '保存中...', forbidClick: true })
-			try {
-				const data = {
-					system: String(this.settings.system),
-					maintenance: String(this.settings.maintenance),
-					charging: String(this.settings.charging),
-					community: String(this.settings.community)
-				}
-				const res = await updateUserSettings('notification', data)
-				this.$toast.clear()
-				if (res.code === 200) {
-					localStorage.setItem('notification_settings', JSON.stringify(this.settings))
-					this.$toast.success('保存成功')
-					setTimeout(() => {
-						this.$router.back()
-					}, 700)
-				} else {
-					this.$toast(res.msg || '保存失败')
-				}
-			} catch (e) {
-				this.$toast.clear()
-				console.error(e)
-				localStorage.setItem('notification_settings', JSON.stringify(this.settings))
-				this.$toast.success('保存成功')
-				setTimeout(() => {
-					this.$router.back()
-				}, 700)
-			} finally {
-				this.loading = false
+				try { settings.value = JSON.parse(saved) } catch (err) {}
 			}
 		}
-	}
-}
+async function saveSettings() {
+			loading.value = true
+			toast.loading({ message: '保存中...', forbidClick: true })
+			try {
+				const data = {
+					system: String(settings.value.system),
+					maintenance: String(settings.value.maintenance),
+					charging: String(settings.value.charging),
+					community: String(settings.value.community)
+				}
+				const res = await updateUserSettings('notification', data)
+				toast.clear()
+				if (res.code === 200) {
+					localStorage.setItem('notification_settings', JSON.stringify(settings.value))
+					toast.success('保存成功')
+					setTimeout(() => {
+						router.back()
+					}, 700)
+				} else {
+					toast(res.msg || '保存失败')
+				}
+			} catch (e) {
+				toast.clear()
+				console.error(e)
+				localStorage.setItem('notification_settings', JSON.stringify(settings.value))
+				toast.success('保存成功')
+				setTimeout(() => {
+					router.back()
+				}, 700)
+			} finally {
+				loading.value = false
+			}
+		}
+loadSettings();
 </script>
 
 <style scoped>

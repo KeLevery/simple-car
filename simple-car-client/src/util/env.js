@@ -1,3 +1,4 @@
 export function getBaseUrl() {
-   return process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging' ? process.env.VUE_APP_BASE_URL : process.env.VUE_APP_BASE_API
+   const env = import.meta.env.VITE_APP_ENV || import.meta.env.MODE
+   return env === 'production' || env === 'staging' ? import.meta.env.VITE_APP_BASE_URL : import.meta.env.VITE_APP_BASE_API
 }

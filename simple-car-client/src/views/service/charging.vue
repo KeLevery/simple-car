@@ -44,45 +44,36 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { stationList } from '@/api/charging'
+import { ref } from 'vue'
 
-export default {
-  name: 'ChargingStation',
-  data() {
-    return {
-      stations: [],
-      cityValue: '320100',
-      statusValue: 0,
-      cityOptions: [
+defineOptions({ name: 'ChargingStation' })
+const stations = ref([])
+const cityValue = ref('320100')
+const statusValue = ref(0)
+const cityOptions = ref([
         { text: '南京市', value: '320100' },
         { text: '苏州市', value: '320500' },
         { text: '无锡市', value: '320200' },
-      ],
-      statusOptions: [
+      ])
+const statusOptions = ref([
         { text: '全部状态', value: 0 },
         { text: '有空闲', value: 1 },
-      ]
-    }
-  },
-  created() {
-    this.fetchStations()
-  },
-  methods: {
-    async fetchStations() {
+      ])
+async function fetchStations() {
       const res = await stationList({
-        cityId: this.cityValue,
-        availableOnly: this.statusValue === 1
+        cityId: cityValue.value,
+        availableOnly: statusValue.value === 1
       })
       if (res.code === 200) {
-        this.stations = res.data
+        stations.value = res.data
       }
-    },
-    onCityChange() {
-      this.fetchStations()
     }
-  }
-}
+function onCityChange() {
+      fetchStations()
+    }
+fetchStations()
 </script>
 
 <style lang="scss" scoped>

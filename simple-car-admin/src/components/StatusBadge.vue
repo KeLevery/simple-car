@@ -6,6 +6,13 @@ const props = defineProps<{
   labels?: Record<string, string>
 }>()
 
+const defaultLabels: Record<string, string> = {
+  '0': '待处理',
+  '1': '正常',
+  '2': '已完成',
+  '3': '已关闭'
+}
+
 const statusText = computed(() => {
   const key = String(props.value ?? '')
   return props.labels?.[key] || defaultLabels[key] || '未知'
@@ -18,13 +25,6 @@ const tone = computed(() => {
   if (value === 2) return 'info'
   return 'muted'
 })
-
-const defaultLabels: Record<string, string> = {
-  '0': '待处理',
-  '1': '正常',
-  '2': '已完成',
-  '3': '已关闭'
-}
 </script>
 
 <template>

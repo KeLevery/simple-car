@@ -64,30 +64,30 @@
 		<van-tabbar v-model="active" route>
 			<van-tabbar-item>
 				<span>社区</span>
-				<template slot="icon">
+				<template #icon>
 					<img src="@/assets/tabbar/community.png" />
 				</template>
 			</van-tabbar-item>
 			<van-tabbar-item to="/analysis">
 				<span>数据分析</span>
-				<template slot="icon">
+				<template #icon>
 					<img src="@/assets/tabbar/analysis.png" />
 				</template>
 			</van-tabbar-item>
 			<van-tabbar-item to="/home">
-				<template slot="icon">
+				<template #icon>
 					<img src="@/assets/tabbar/home_act.png" />
 				</template>
 			</van-tabbar-item>
 			<van-tabbar-item to="/service">
 				<span>服务</span>
-				<template slot="icon">
+				<template #icon>
 					<img src="@/assets/tabbar/service.png" />
 				</template>
 			</van-tabbar-item>
 			<van-tabbar-item to="/mine">
 				<span>我的</span>
-				<template slot="icon">
+				<template #icon>
 					<img src="@/assets/tabbar/mine.png" />
 				</template>
 			</van-tabbar-item>
@@ -95,55 +95,51 @@
 	</div>
 </template>
 
-<script>
-	import {
+<script setup>
+import {
 		carInfo
 	} from '@/api/carInfo'
-import controlVue from '../control/control.vue';
-	export default {
-		data() {
-			return {
-				active: '/home',
-				carId: 0,
-				enduranceMileage: 0, //剩余里程
-				remainingPower: 0, //剩余电量
-				controlAct:null,
-				updateTime: '',
-				controlList: [{
-						defaultSrc: require('@/assets/unlock.png'),
-						actSrc: require('@/assets/unlock_act.png')
-					},
-				],
-			}
-		},
-		methods: {
-			getCarInfo() {
-				carInfo(this.carId).then(res => {
-					console.log(res);
-					this.enduranceMileage = res.data.enduranceMileage
-					this.remainingPower = res.data.remainingPower
-					this.updateTime = res.data.updateTime
-				})
-			},
+import unlockIcon from '@/assets/unlock.png'
+import unlockActiveIcon from '@/assets/unlock_act.png'
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-			doorTips(text, index) {
-				if(this.controlAct==index){
-					this.controlAct=null
-				}else{
-					this.$notify({type:'success',message:text})
-					this.controlAct=index
-				}
-			},
-			
-			gotoPage(url){
-				this.$router.push({path:url})
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const active = ref('/home')
+const carId = ref(0)
+const enduranceMileage = ref(0)
+const remainingPower = ref(0)
+const controlAct = ref(null)
+const updateTime = ref('')
+const controlList = ref([{
+						defaultSrc: unlockIcon,
+						actSrc: unlockActiveIcon
+					},
+				])
+function getCarInfo() {
+				carInfo(carId.value).then(res => {
+					console.log(res);
+					enduranceMileage.value = res.data.enduranceMileage
+					remainingPower.value = res.data.remainingPower
+					updateTime.value = res.data.updateTime
+				})
 			}
-		},
-		created() {
-			this.carId = JSON.parse(window.localStorage.getItem('carInfo')).carId;
-			this.getCarInfo()
-		}
-	}
+function doorTips(text, index) {
+				if(controlAct.value==index){
+					controlAct.value=null
+				}else{
+					notify({type:'success',message:text})
+					controlAct.value=index
+				}
+			}
+function gotoPage(url) {
+				router.push({path:url})
+			}
+carId.value = JSON.parse(window.localStorage.getItem('carInfo')).carId;
+			getCarInfo()
 </script>
 
 <style>

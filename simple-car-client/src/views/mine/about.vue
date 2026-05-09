@@ -27,7 +27,7 @@
 			<div>All rights reserved.</div>
 		</div>
 
-        <van-popup v-model="showPopup" position="bottom" round :style="{ maxHeight: '80%' }">
+        <van-popup v-model:show="showPopup" position="bottom" round :style="{ maxHeight: '80%' }">
             <div class="content-popup">
                 <div class="popup-header">
                     <h3>{{ popupTitle }}</h3>
@@ -43,14 +43,13 @@
 	</div>
 </template>
 
-<script>
-export default {
-    data() {
-        return {
-            showPopup: false,
-            popupTitle: '',
-            popupContent: '',
-            contents: {
+<script setup>
+import { ref } from 'vue'
+
+const showPopup = ref(false)
+const popupTitle = ref('')
+const popupContent = ref('')
+const contents = ref({
                 feature: {
                     title: '功能介绍',
                     content: '极氪车主APP是一款专为极氪车主打造的智能出行服务平台。\n\n主要功能包括：\n\n• 远程车控：支持远程锁车/解锁、空调控制、车辆状态查看等\n\n• 智能充电：查找附近充电站、查看实时空闲桩位、充电费用记录\n\n• 维保服务：在线预约维保、查看维保历史、维修方案推荐\n\n• 数据分析：行驶里程统计、充电数据分析、用车报告\n\n• 车主社区：分享用车体验、交流驾驶心得、获取最新资讯\n\n• 违章查询：实时查询车辆违章记录\n\n• 道路救援：一键呼叫道路救援服务'
@@ -63,20 +62,15 @@ export default {
                     title: '隐私政策',
                     content: '极氪车主隐私政策\n\n更新日期：2026年1月1日\n\n一、信息收集\n我们可能收集以下信息：\n1. 您提供的个人信息（姓名、手机号、车辆信息等）\n2. 车辆运行数据（里程、电量、位置等）\n3. 服务使用记录\n\n二、信息使用\n我们收集的信息用于：\n1. 提供、维护和改进我们的服务\n2. 为您推送相关通知和提醒\n3. 保障账号和交易安全\n\n三、信息保护\n我们采用行业标准的安全措施保护您的个人信息，防止未经授权的访问、使用或泄露。\n\n四、信息共享\n未经您的同意，我们不会向第三方共享您的个人信息，法律法规规定的除外。\n\n五、您的权利\n您有权查询、更正、删除您的个人信息，也可以注销账号。\n\n六、联系我们\n如有疑问，请通过APP内的在线客服联系我们。'
                 }
-            }
-        }
-    },
-    methods: {
-        showContent(type) {
-            const content = this.contents[type];
+            })
+function showContent(type) {
+            const content = contents.value[type];
             if (content) {
-                this.popupTitle = content.title;
-                this.popupContent = content.content;
-                this.showPopup = true;
+                popupTitle.value = content.title;
+                popupContent.value = content.content;
+                showPopup.value = true;
             }
         }
-    }
-}
 </script>
 
 <style lang="scss" scoped>

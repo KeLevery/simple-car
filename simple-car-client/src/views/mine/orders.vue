@@ -9,7 +9,7 @@
 			@click-left="$router.back()"
 		/>
 
-		<van-tabs v-model="activeTab" sticky offset-top="46" color="#00d4ff" background="#111827">
+		<van-tabs v-model:active="activeTab" sticky offset-top="46" color="#00d4ff" background="#111827">
 			<van-tab title="全部订单">
 				<div class="order-list" v-if="orders.length > 0">
 					<div v-for="order in orders" :key="order.uid || order.id" class="order-card">
@@ -52,7 +52,7 @@
 			</van-tab>
 		</van-tabs>
 		
-		<van-popup v-model="showDetailPopup" position="bottom" round :style="{ maxHeight: '70%' }">
+		<van-popup v-model:show="showDetailPopup" position="bottom" round :style="{ maxHeight: '70%' }">
 			<div class="detail-popup" v-if="currentOrder">
 				<div class="detail-header">
 					<h3>订单详情</h3>
@@ -87,47 +87,36 @@
 	</div>
 </template>
 
-<script>
+<script setup>
 import { orderList } from '@/api/order'
+import { computed, ref } from 'vue'
 
-export default {
-	data() {
-		return {
-			activeTab: 0,
-			orders: [],
-			currentOrder: null,
-			showDetailPopup: false
-		}
-	},
-	computed: {
-		completedOrders() {
-			return this.orders.filter(o => o.status === '已支付' || o.status === '已完成');
-		}
-	},
-	created() {
-		this.fetchOrders();
-	},
-	methods: {
-		async fetchOrders() {
+const activeTab = ref(0)
+const orders = ref([])
+const currentOrder = ref(null)
+const showDetailPopup = ref(false)
+const completedOrders = computed(() => {
+			return orders.value.filter(o => o.status === '已支付' || o.status === '已完成');
+		})
+async function fetchOrders() {
 			const res = await orderList();
 			if (res.code === 200) {
-				this.orders = res.data;
+				orders.value = res.data;
 			}
-		},
-		showDetail(order) {
-			this.currentOrder = order;
-			this.showDetailPopup = true;
-		},
-		getStatusClass(status) {
+		}
+function showDetail(order) {
+			currentOrder.value = order;
+			showDetailPopup.value = true;
+		}
+function getStatusClass(status) {
 			if (status === '已支付' || status === '已完成') return 'success';
 			if (status === '待支付') return 'warning';
 			return 'info';
-		},
-		formatTime(time) {
+		}
+function formatTime(time) {
 			return time ? time.replace('T', ' ').substring(0, 16) : '';
 		}
-	}
-}
+fetchOrders();
 </script>
 
 <style lang="scss" scoped>

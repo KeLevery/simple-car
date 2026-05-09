@@ -9,26 +9,24 @@
 	</div>
 </template>
 
-<script>
-	import {
+<script setup>
+import {
 		getBaseUrl
 	} from '@/util/env';
-	import * as THREE from "three";
-	import {
+import * as THREE from "three";
+import {
 		TWEEN
 	} from "three/examples/jsm/libs/tween.module.min.js";
-	import {
+import {
 		OrbitControls
 	} from "three/examples/jsm/controls/OrbitControls";
-	import {
+import {
 		loadGLTFModel
 	} from "../lib/model";
+import { onMounted, ref } from 'vue'
 
-	export default {
-		data() {
-			return {
-				showLoading: false,
-				GLBs: [{
+const showLoading = ref(false)
+const GLBs = ref([{
 						name: "EXT",
 						path: getBaseUrl() +
 							"/profile/avatar/2023/12/23/static/data/lynkco09/model/Lynkco09_EXT_d.glb",
@@ -73,22 +71,16 @@
 						path: getBaseUrl() +
 							"/profile/avatar/2023/12/23/static/data/lynkco09/model/Lynkco09_RBDoor_d.glb",
 					},
-				],
-				refRenderer: {
+				])
+const refRenderer = ref({
 					current: null,
-				},
-				scene: null,
-				camera: null,
-				controls: null,
-				models: [],
-			};
-		},
-		mounted() {
-			this.init();
-		},
-		methods: {
-			init() {
-				this.showLoading = true
+				})
+const scene = ref(null)
+const camera = ref(null)
+const controls = ref(null)
+const models = ref([])
+function init() {
+				showLoading.value = true
 				const container = document.getElementsByClassName('css-1xtnbsj')[0]
 
 				if (container) {
@@ -104,9 +96,9 @@
 					renderer.outputEncoding = THREE.sRGBEncoding
 					//将渲染器挂载到dom上
 					container.appendChild(renderer.domElement)
-					this.refRenderer.current = renderer
+					refRenderer.value.current = renderer
 					//创建3d场景
-					this.scene = new THREE.Scene()
+					scene.value = new THREE.Scene()
 					const target = new THREE.Vector3(-0.5, 0.5, 0)
 					const initialCameraPosition = new THREE.Vector3(
 						5 * Math.sin(0.2 * Math.PI),
@@ -114,33 +106,33 @@
 						5 * Math.cos(0.2 * Math.PI)
 					)
 					//创建相机
-					this.camera = new THREE.PerspectiveCamera(40, scW / scH, 0.1, 1000)
-					this.camera.position.copy(initialCameraPosition)
-					this.camera.lookAt(target)
+					camera.value = new THREE.PerspectiveCamera(40, scW / scH, 0.1, 1000)
+					camera.value.position.copy(initialCameraPosition)
+					camera.value.lookAt(target)
 					//创建相机控件
-					this.controls = new OrbitControls(this.camera, renderer.domElement)
-					this.controls.autoRotate = false;
-					this.controls.enableZoom = true
-					this.controls.minDistance = 1
-					this.controls.maxDistance = 6
-					this.controls.target = target
+					controls.value = new OrbitControls(camera.value, renderer.domElement)
+					controls.value.autoRotate = false;
+					controls.value.enableZoom = true
+					controls.value.minDistance = 1
+					controls.value.maxDistance = 6
+					controls.value.target = target
 
 					//创建灯光
 					const light1 = new THREE.DirectionalLight(0xffffff, 0.2)
 					light1.position.set(0, 0, 10)
-					this.scene.add(light1)
+					scene.value.add(light1)
 
 					Promise.all(
-						this.GLBs.map(item => {
-							loadGLTFModel(this.scene, item, this.refRenderer, {
+						GLBs.value.map(item => {
+							loadGLTFModel(scene.value, item, refRenderer.value, {
 								receiveShadow: false,
 								castShadow: false
 							})
 						})
 					).then(res => {
-						this.models = res
+						models.value = res
 						animate()
-						this.showLoading = false
+						showLoading.value = false
 					})
 
 					let frame = 0
@@ -148,20 +140,21 @@
 						requestAnimationFrame(animate)
 						frame = frame <= 100 ? frame + 1 : frame
 						if (frame <= 100) {
-							this.camera.lookAt(target)
+							camera.value.lookAt(target)
 						} else {
-							this.controls.update()
+							controls.value.update()
 						}
 						TWEEN.update()
-						renderer.render(this.scene, this.camera)
+						renderer.render(scene.value, camera.value)
 					}
 
 				} else {
-					this.showLoading = false;
+					showLoading.value = false;
 				}
-			},
-		},
-	};
+			}
+onMounted(() => {
+			init();
+		})
 </script>
 
 <style scoped>

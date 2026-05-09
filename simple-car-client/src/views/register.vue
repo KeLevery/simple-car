@@ -5,8 +5,8 @@
 			<div class="brand animate-in stagger-1">
 				<div class="brand-logo">
 					<svg viewBox="0 0 40 40" width="48" height="48">
-						<polygon points="20,2 38,20 20,38 2,20" fill="none" stroke="currentColor" stroke-width="1.5"/>
-						<circle cx="20" cy="20" r="4" fill="currentColor"/>
+						<polygon points="20,2 38,20 20,38 2,20" fill="none" stroke="currentColor" stroke-width="1.5" />
+						<circle cx="20" cy="20" r="4" fill="currentColor" />
 					</svg>
 				</div>
 				<h1 class="brand-name">SIMPLE CAR</h1>
@@ -19,44 +19,20 @@
 
 				<div class="field-group">
 					<div class="field-item">
-						<van-field
-							v-model="phone"
-							placeholder="请输入手机号"
-							left-icon="phone-o"
-							type="tel"
-							maxlength="11"
-							class="clean-field"
-							:error-message="phoneError"
-						/>
+						<van-field v-model="phone" placeholder="请输入手机号" left-icon="phone-o" type="tel" maxlength="11"
+							class="clean-field" :error-message="phoneError" />
 					</div>
 					<div class="field-item">
-						<van-field
-							v-model="nickName"
-							placeholder="请输入昵称（选填）"
-							left-icon="user-o"
-							maxlength="20"
-							class="clean-field"
-						/>
+						<van-field v-model="nickName" placeholder="请输入昵称（选填）" left-icon="user-o" maxlength="20"
+							class="clean-field" />
 					</div>
 					<div class="field-item">
-						<van-field
-							v-model="password"
-							placeholder="请输入密码（至少6位）"
-							left-icon="lock"
-							type="password"
-							class="clean-field"
-							:error-message="passwordError"
-						/>
+						<van-field v-model="password" placeholder="请输入密码（至少6位）" left-icon="lock" type="password"
+							class="clean-field" :error-message="passwordError" />
 					</div>
 					<div class="field-item">
-						<van-field
-							v-model="confirmPassword"
-							placeholder="请再次输入密码"
-							left-icon="lock"
-							type="password"
-							class="clean-field"
-							:error-message="confirmError"
-						/>
+						<van-field v-model="confirmPassword" placeholder="请再次输入密码" left-icon="lock" type="password"
+							class="clean-field" :error-message="confirmError" />
 					</div>
 				</div>
 
@@ -77,81 +53,77 @@
 	</div>
 </template>
 
-<script>
+<script setup>
 import { userRegister } from '@/api/user'
+import { ref, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-export default {
-	name: 'register',
-	data() {
-		return {
-			phone: '',
-			nickName: '',
-			password: '',
-			confirmPassword: '',
-			loading: false,
-			phoneError: '',
-			passwordError: '',
-			confirmError: ''
-		}
-	},
-	watch: {
-		phone() { this.phoneError = '' },
-		password() { this.passwordError = '' },
-		confirmPassword() { this.confirmError = '' }
-	},
-	methods: {
-		validate() {
-			let valid = true
-			if (!/^1\d{10}$/.test(this.phone)) {
-				this.phoneError = '请输入正确的11位手机号'
-				valid = false
-			}
-			if (this.password.length < 6) {
-				this.passwordError = '密码长度不能少于6位'
-				valid = false
-			}
-			if (this.confirmPassword !== this.password) {
-				this.confirmError = '两次输入的密码不一致'
-				valid = false
-			}
-			if (this.confirmPassword.length === 0) {
-				this.confirmError = '请再次输入密码'
-				valid = false
-			}
-			return valid
-		},
-		registerSubmit() {
-			if (!this.validate()) return
-
-			this.loading = true
-			this.$toast.loading({
-				message: '注册中...',
-				forbidClick: true
-			})
-
-			userRegister({
-				username: this.phone,
-				password: this.password,
-				nickName: this.nickName || '',
-				phone: this.phone
-			}).then(res => {
-				this.loading = false
-				if (res.code == 200) {
-					this.$toast.success('注册成功，请登录')
-					this.$router.push({ path: '/', query: { account: this.phone } })
-				} else {
-					this.$toast.fail(res.msg || '注册失败')
-				}
-			}).catch(() => {
-				this.loading = false
-				this.$toast.fail('注册失败，请稍后重试')
-			})
-		},
-		goLogin() {
-			this.$router.push('/')
-		}
+defineOptions({ name: 'register' })
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const phone = ref('')
+const nickName = ref('')
+const password = ref('')
+const confirmPassword = ref('')
+const loading = ref(false)
+const phoneError = ref('')
+const passwordError = ref('')
+const confirmError = ref('')
+function validate() {
+	let valid = true
+	if (!/^1\d{10}$/.test(phone.value)) {
+		phoneError.value = '请输入正确的11位手机号'
+		valid = false
 	}
+	if (password.value.length < 6) {
+		passwordError.value = '密码长度不能少于6位'
+		valid = false
+	}
+	if (confirmPassword.value !== password.value) {
+		confirmError.value = '两次输入的密码不一致'
+		valid = false
+	}
+	if (confirmPassword.value.length === 0) {
+		confirmError.value = '请再次输入密码'
+		valid = false
+	}
+	return valid
 }
+function registerSubmit() {
+	if (!validate()) return
+
+	loading.value = true
+	toast.loading({
+		message: '注册中...',
+		forbidClick: true
+	})
+
+	userRegister({
+		username: phone.value,
+		password: password.value,
+		nickName: nickName.value || '',
+		phone: phone.value
+	}).then(res => {
+		loading.value = false
+		if (res.code == 200) {
+			toast.success('注册成功，请登录')
+			router.push({ path: '/', query: { account: phone.value } })
+		} else {
+			toast.fail(res.msg || '注册失败')
+		}
+	}).catch(() => {
+		loading.value = false
+		toast.fail('注册失败，请稍后重试')
+	})
+}
+function goLogin() {
+	router.push('/')
+}
+watch(phone, () => { phoneError.value = '' })
+watch(password, () => { passwordError.value = '' })
+watch(confirmPassword, () => { confirmError.value = '' })
 </script>
 
 <style scoped lang="scss">
@@ -230,15 +202,16 @@ export default {
 			display: none;
 		}
 
-		::v-deep .van-field__control {
+		:deep(.van-field__control) {
 			color: var(--text-primary);
 			font-size: 15px;
+
 			&::placeholder {
 				color: var(--text-tertiary);
 			}
 		}
 
-		::v-deep .van-field__left-icon {
+		:deep(.van-field__left-icon) {
 			color: var(--text-tertiary);
 			margin-right: 8px;
 		}
@@ -300,11 +273,22 @@ export default {
 	animation: enterUp 0.6s ease forwards;
 }
 
-.stagger-1 { animation-delay: 0.1s; }
-.stagger-2 { animation-delay: 0.2s; }
-.stagger-3 { animation-delay: 0.3s; }
+.stagger-1 {
+	animation-delay: 0.1s;
+}
+
+.stagger-2 {
+	animation-delay: 0.2s;
+}
+
+.stagger-3 {
+	animation-delay: 0.3s;
+}
 
 @keyframes enterUp {
-	to { opacity: 1; transform: translateY(0); }
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 </style>

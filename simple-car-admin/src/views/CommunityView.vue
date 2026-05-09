@@ -20,6 +20,11 @@ const columns = [
   { key: 'createTime', label: '发布时间' }
 ]
 
+const hotLabels: Record<string, string> = {
+  '0': '普通',
+  '1': '热门'
+}
+
 const visiblePosts = computed(() => {
   const keyword = query.value.trim().toLowerCase()
   if (!keyword) return items.value
@@ -45,7 +50,7 @@ function toPost(row: unknown) {
       <span class="clamped-text">{{ value }}</span>
     </template>
     <template #isHot="{ value }">
-      <StatusBadge :value="Number(value)" :labels="{ 0: '普通', 1: '热门' }" />
+      <StatusBadge :value="Number(value)" :labels="hotLabels" />
     </template>
     <template #actions="{ row }">
       <button class="danger-button" type="button" @click="removePost(toPost(row))">

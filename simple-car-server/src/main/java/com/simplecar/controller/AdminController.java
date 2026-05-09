@@ -23,6 +23,8 @@ import com.simplecar.result.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -58,6 +60,19 @@ public class AdminController {
     private final ChargingOrderMapper chargingOrderMapper;
     private final CommunityPostMapper communityPostMapper;
     private final PasswordEncoder passwordEncoder;
+
+    @Operation(summary = "校验后台登录态")
+    @GetMapping("/session")
+    public ApiResponse<Map<String, Object>> session(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ApiResponse.error(401, "未登录或登录已过期");
+        }
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("username", authentication.getName());
+        data.put("roles", authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
+        data.put("authenticated", true);
+        return ApiResponse.success(data);
+    }
 
     @Operation(summary = "后台总览")
     @GetMapping("/overview")

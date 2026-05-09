@@ -16,7 +16,7 @@ const emit = defineEmits<{
 
 <template>
   <section class="toolbar">
-    <div>
+    <div class="toolbar-title">
       <p class="eyebrow">管理列表</p>
       <h2>{{ title }}</h2>
     </div>

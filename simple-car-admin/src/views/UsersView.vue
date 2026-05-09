@@ -20,6 +20,11 @@ const form = reactive<UserPayload>({
 })
 const { items, loading, error, refresh } = useAdminResource<UserItem>(adminApi.users)
 
+const userStatusLabels: Record<string, string> = {
+  '0': '禁用',
+  '1': '正常'
+}
+
 const columns = [
   { key: 'id', label: 'ID' },
   { key: 'username', label: '账号' },
@@ -99,7 +104,7 @@ function toUser(row: unknown) {
 
   <DataTable :columns="columns" :rows="visibleUsers" :loading="loading">
     <template #status="{ value }">
-      <StatusBadge :value="Number(value)" :labels="{ 0: '禁用', 1: '正常' }" />
+      <StatusBadge :value="Number(value)" :labels="userStatusLabels" />
     </template>
     <template #actions="{ row }">
       <div class="row-actions">

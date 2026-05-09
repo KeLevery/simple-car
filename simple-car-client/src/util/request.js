@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { Dialog, Toast } from 'vant'
+import { showConfirmDialog, showFailToast } from 'vant'
 import errorCode from '@/util/errorCode'
 import { getBaseUrl } from '@/util/env'
 import router from '@/router'
@@ -55,10 +55,10 @@ service.interceptors.response.use(res => {
   const msg = errorCode[code] || res.data.msg || errorCode['default']
   if (code === 401) {
     // 如果已经在登录页，不弹窗（避免阻断登录流程）
-    if (router.currentRoute && router.currentRoute.path === '/') {
+    if (router.currentRoute && router.currentRoute.value.path === '/') {
       return res.data
     }
-    Dialog.confirm({
+    showConfirmDialog({
       title: '系统提示',
       message: '登录状态已过期，请重新登录',
       showCancelButton: false,
@@ -71,7 +71,7 @@ service.interceptors.response.use(res => {
       window.localStorage.removeItem('carInfo');
       window.localStorage.removeItem('carList');
       const to = '/'
-      if (router.currentRoute && router.currentRoute.path === to) return
+      if (router.currentRoute && router.currentRoute.value.path === to) return
       router.push(to).catch(() => {})
     }).catch(() => {
       // on cancel
@@ -93,7 +93,7 @@ service.interceptors.response.use(res => {
     else if (message.includes("Request failed with status code")) {
       message = "系统接口" + message.substr(message.length - 3) + "异常";
     }
-    Toast.fail(message);
+    showFailToast(message);
     return Promise.reject(error)
   }
 )

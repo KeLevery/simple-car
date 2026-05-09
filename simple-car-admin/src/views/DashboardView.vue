@@ -16,8 +16,8 @@ const totalRevenue = computed(() => {
 const statItems = computed(() => {
   const data = overview.value
   return [
-    { label: '用户数', value: data?.userCount ?? '-', icon: Users, tone: 'cyan' },
-    { label: '车辆数', value: data?.vehicleCount ?? '-', icon: Car, tone: 'green' },
+    { label: '用户总数', value: data?.userCount ?? '-', icon: Users, tone: 'cyan' },
+    { label: '车辆资产', value: data?.vehicleCount ?? '-', icon: Car, tone: 'green' },
     { label: '维保预约', value: data?.appointmentCount ?? '-', icon: BatteryCharging, tone: 'amber' },
     { label: '救援请求', value: data?.rescueCount ?? '-', icon: Siren, tone: 'coral' },
     { label: '社区动态', value: data?.postCount ?? '-', icon: MessageSquare, tone: 'violet' },
@@ -53,14 +53,17 @@ onMounted(loadOverview)
     <div>
       <p class="eyebrow">今日待办</p>
       <h2>{{ overview?.todayAppointmentCount ?? 0 }} 个今日预约</h2>
+      <span>建议优先确认到店时间和服务工位。</span>
     </div>
     <div>
       <p class="eyebrow">救援队列</p>
       <h2>{{ overview?.pendingRescueCount ?? 0 }} 个待处理</h2>
+      <span>状态流转后前端会同步展示给车主。</span>
     </div>
     <div>
       <p class="eyebrow">站点资源</p>
       <h2>{{ (overview?.chargingStationCount ?? 0) + (overview?.serviceStationCount ?? 0) }} 个服务站点</h2>
+      <span>覆盖充电站和维保服务站。</span>
     </div>
   </section>
 

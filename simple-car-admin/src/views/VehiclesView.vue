@@ -30,6 +30,13 @@ const form = reactive<VehiclePayload>({
   carState: 1
 })
 
+const carStateLabels: Record<string, string> = {
+  '0': '离线',
+  '1': '在线',
+  '2': '静止',
+  '3': '启动'
+}
+
 const columns = [
   { key: 'id', label: 'ID' },
   { key: 'userId', label: '用户ID' },
@@ -163,7 +170,7 @@ function toVehicle(row: unknown) {
       <UserSearchSelect
         v-model="selectedUserId"
         :selected-user="selectedUser"
-        placeholder="搜用户ID / 账号 / 昵称 / 手机号"
+        placeholder="搜索用户 ID / 账号 / 昵称 / 手机号"
         @select="handleUserSelect"
       />
       <button class="primary-button compact" type="button" @click="openCreate">
@@ -179,7 +186,7 @@ function toVehicle(row: unknown) {
     <template #remainingPower="{ value }">{{ value ?? 0 }}%</template>
     <template #enduranceMileage="{ value }">{{ value ?? 0 }} km</template>
     <template #carState="{ value }">
-      <StatusBadge :value="Number(value)" :labels="{ 0: '离线', 1: '在线', 2: '静止', 3: '启动' }" />
+      <StatusBadge :value="Number(value)" :labels="carStateLabels" />
     </template>
     <template #actions="{ row }">
       <div class="row-actions">
@@ -201,7 +208,7 @@ function toVehicle(row: unknown) {
       <UserSearchSelect
         v-model="form.userId"
         :selected-user="formUser"
-        placeholder="搜用户ID / 账号 / 昵称 / 手机号"
+        placeholder="搜索用户 ID / 账号 / 昵称 / 手机号"
         @select="handleFormUserSelect"
       />
     </label>

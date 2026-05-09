@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { router } from '@/router'
 
 export interface ApiResponse<T> {
   code: number
@@ -25,7 +24,9 @@ http.interceptors.response.use(
     const result = response.data as ApiResponse<unknown>
     if (result && result.code === 401) {
       window.localStorage.removeItem('adminToken')
-      router.push({ name: 'login' })
+      if (window.location.pathname !== '/login') {
+        window.location.assign('/login')
+      }
       return Promise.reject(new Error(result.msg || '登录已过期'))
     }
     if (result && result.code && result.code !== 200) {

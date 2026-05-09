@@ -81,112 +81,110 @@
     </div>
 </template>
 
-<script>
+<script setup>
 import Tabbar from "@/components/Tabbar.vue"
 import { doCarStart, CarState } from '@/api/carInfo'
+import controlImage from '@/assets/control/control.png'
+import firingImage from '@/assets/control/firing.png'
+import lightImage from '@/assets/control/light.png'
+import ventilateImage from '@/assets/control/ventilate.png'
+import whistleImage from '@/assets/control/whistle.png'
+import { computed, ref } from 'vue'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-export default {
-    name: 'control',
-    components: { Tabbar },
-    data() {
-        return {
-            carId: 0,
-            carState: {},
-            activeControls: {}, // key: index, value: boolean
-            controlActions: [
+const controlImages = {
+    firing: firingImage,
+    light: lightImage,
+    ventilate: ventilateImage,
+    whistle: whistleImage
+}
+
+defineOptions({ name: 'control' })
+const { toast, notify, dialog } = useVantCompat()
+const carId = ref(0)
+const carState = ref({})
+const activeControls = ref({})
+const controlActions = ref([
                 { label: '引擎启动', icon: 'fire-o', action: 'firing' },
                 { label: '灯光控制', icon: 'bulb-o', action: 'light' },
                 { label: '寻车鸣笛', icon: 'volume-o', action: 'whistle' },
                 { label: '通风换气', icon: 'cluster-o', action: 'ventilate' },
-            ],
-            activeQuicks: {}, // key: index, value: boolean
-            quickFunctions: [
+            ])
+const activeQuicks = ref({})
+const quickFunctions = ref([
                 { label: '空调预冷', desc: '远程开启空调', activeDesc: '空调已开启运行中', color: '#3b82f6' },
                 { label: '座椅加热', desc: '远程加热座椅', activeDesc: '座椅加热中', color: '#f59e0b' },
                 { label: '后备箱开启', desc: '远程开启后备箱', activeDesc: '后备箱已开启', color: '#22c55e' },
                 { label: '车窗控制', desc: '一键开关车窗', activeDesc: '车窗已开启', color: '#8b5cf6' },
-            ]
-        }
-    },
-    computed: {
-        carImage() {
+            ])
+const carImage = computed(() => {
             // Show the first active control's image if any
-            for (let i = 0; i < this.controlActions.length; i++) {
-                if (this.activeControls[i]) {
-                    const action = this.controlActions[i].action;
-                    try {
-                        return require(`@/assets/control/${action}.png`);
-                    } catch {
-                        return require('@/assets/control/control.png');
-                    }
+            for (let i = 0; i < controlActions.value.length; i++) {
+                if (activeControls.value[i]) {
+                    const action = controlActions.value[i].action;
+                    return controlImages[action] || controlImage;
                 }
             }
-            return require('@/assets/control/control.png');
-        },
-        currentStateText() {
+            return controlImage;
+        })
+const currentStateText = computed(() => {
             const activeLabels = [];
-            for (let i = 0; i < this.controlActions.length; i++) {
-                if (this.activeControls[i]) {
-                    activeLabels.push(this.controlActions[i].label);
+            for (let i = 0; i < controlActions.value.length; i++) {
+                if (activeControls.value[i]) {
+                    activeLabels.push(controlActions.value[i].label);
                 }
             }
             if (activeLabels.length > 0) {
                 return activeLabels.join(' · ') + ' 运行中';
             }
             return '待命状态';
-        }
-    },
-    created() {
-        const carInfo = window.localStorage.getItem('carInfo');
-        if (carInfo) {
-            const parsed = JSON.parse(carInfo);
-            this.carId = parsed.carId || (parsed.car && parsed.car.carId) || 0;
-        }
-        this.fetchCarState();
-    },
-    methods: {
-        fetchCarState() {
-            if (!this.carId) return;
-            CarState(this.carId).then(res => {
+        })
+function fetchCarState() {
+            if (!carId.value) return;
+            CarState(carId.value).then(res => {
                 if (res.code == 200) {
-                    this.carState = res.data || {};
+                    carState.value = res.data || {};
                 }
             }).catch(() => {});
-        },
-        executeControl(item, index) {
-            if (this.activeControls[index]) {
+        }
+function executeControl(item, index) {
+            if (activeControls.value[index]) {
                 // Turn off
-                this.$set(this.activeControls, index, false);
-                this.$toast('已关闭 ' + item.label);
+                activeControls.value[index] = false;
+                toast('已关闭 ' + item.label);
                 return;
             }
             // Turn on
-            this.$toast.loading({ message: item.label + '中...', forbidClick: true, duration: 1500 });
+            toast.loading({ message: item.label + '中...', forbidClick: true, duration: 1500 });
             
-            doCarStart({ carId: this.carId, action: item.action }).then(res => {
+            doCarStart({ carId: carId.value, action: item.action }).then(res => {
                 if (res.code == 200) {
-                    this.$set(this.activeControls, index, true);
-                    this.$toast.success(item.label + '成功');
+                    activeControls.value[index] = true;
+                    toast.success(item.label + '成功');
                 } else {
-                    this.$toast.fail(res.msg || '操作失败');
+                    toast.fail(res.msg || '操作失败');
                 }
             }).catch(() => {
-                this.$toast.fail('网络异常');
+                toast.fail('网络异常');
             });
-        },
-        executeQuick(item, index) {
-            if (this.activeQuicks[index]) {
+        }
+function executeQuick(item, index) {
+            if (activeQuicks.value[index]) {
                 // Turn off
-                this.$set(this.activeQuicks, index, false);
-                this.$toast('已关闭 ' + item.label);
+                activeQuicks.value[index] = false;
+                toast('已关闭 ' + item.label);
             } else {
                 // Turn on
-                this.$set(this.activeQuicks, index, true);
-                this.$toast.success(item.label + '指令已发送');
+                activeQuicks.value[index] = true;
+                toast.success(item.label + '指令已发送');
             }
         }
-    }
-}
+const carInfo = window.localStorage.getItem('carInfo');
+        if (carInfo) {
+            const parsed = JSON.parse(carInfo);
+            carId.value = parsed.carId || (parsed.car && parsed.car.carId) || 0;
+        }
+        fetchCarState();
 </script>
 
 <style lang="scss" scoped>

@@ -2,124 +2,111 @@
 	<div class="particle-bg" ref="container"></div>
 </template>
 
-<script>
+<script setup>
 import * as THREE from 'three'
+import { onBeforeUnmount, onMounted, ref, toRefs } from 'vue'
 
-export default {
-	name: 'ParticleBg',
-	props: {
+defineOptions({ name: 'ParticleBg' })
+const props = defineProps({
 		particleCount: { type: Number, default: 60 },
 		connectionDistance: { type: Number, default: 2.5 },
 		particleColor: { type: Number, default: 0x00d4ff },
 		speed: { type: Number, default: 0.002 },
 		opacity: { type: Number, default: 0.5 },
 		depth: { type: Number, default: 8 }
-	},
-	data() {
-		return {
-			animationId: null,
-			renderer: null,
-			scene: null,
-			camera: null,
-			mouse: { x: 0, y: 0 }
-		}
-	},
-	mounted() {
-		this.initScene()
-		window.addEventListener('resize', this.onResize)
-		window.addEventListener('mousemove', this.onMouseMove)
-	},
-	beforeDestroy() {
-		window.removeEventListener('resize', this.onResize)
-		window.removeEventListener('mousemove', this.onMouseMove)
-		if (this.animationId) cancelAnimationFrame(this.animationId)
-		if (this.renderer) {
-			this.renderer.dispose()
-			if (this.geometry) this.geometry.dispose()
-			if (this.material) this.material.dispose()
-			if (this.lineGeometry) this.lineGeometry.dispose()
-			if (this.lineMaterial) this.lineMaterial.dispose()
-		}
-	},
-	methods: {
-		initScene() {
-			const container = this.$refs.container
-			if (!container) return
+	})
+const { particleCount, connectionDistance, particleColor, speed, opacity, depth } = toRefs(props)
+const container = ref(null)
+const animationId = ref(null)
+const renderer = ref(null)
+const scene = ref(null)
+const camera = ref(null)
+const mouse = ref({ x: 0, y: 0 })
+let geometry = null
+let material = null
+let lineGeometry = null
+let lineMaterial = null
+let particlesData = null
+let points = null
+let lines = null
+function initScene() {
+			const containerEl = container.value
+			if (!containerEl) return
 
-			const w = container.clientWidth
-			const h = container.clientHeight
+			const w = containerEl.clientWidth
+			const h = containerEl.clientHeight
 
 			// Renderer
-			this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-			this.renderer.setSize(w, h)
-			this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-			container.appendChild(this.renderer.domElement)
+			renderer.value = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+			renderer.value.setSize(w, h)
+			renderer.value.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+			containerEl.appendChild(renderer.value.domElement)
 
 			// Scene & Camera
-			this.scene = new THREE.Scene()
-			this.camera = new THREE.PerspectiveCamera(60, w / h, 0.1, 1000)
-			this.camera.position.z = 5
+			scene.value = new THREE.Scene()
+			camera.value = new THREE.PerspectiveCamera(60, w / h, 0.1, 1000)
+			camera.value.position.z = 5
 
 			// Particles
-			const count = this.particleCount
-			const d = this.depth
+			const count = particleCount.value
+			const d = depth.value
 			const positions = new Float32Array(count * 3)
-			this.particlesData = []
+			particlesData = []
 
 			for (let i = 0; i < count; i++) {
 				positions[i * 3] = (Math.random() - 0.5) * d
 				positions[i * 3 + 1] = (Math.random() - 0.5) * d
 				positions[i * 3 + 2] = (Math.random() - 0.5) * d
-				this.particlesData.push({
+				particlesData.push({
 					velocity: new THREE.Vector3(
-						(Math.random() - 0.5) * this.speed,
-						(Math.random() - 0.5) * this.speed,
-						(Math.random() - 0.5) * this.speed
+						(Math.random() - 0.5) * speed.value,
+						(Math.random() - 0.5) * speed.value,
+						(Math.random() - 0.5) * speed.value
 					)
 				})
 			}
 
-			this.geometry = new THREE.BufferGeometry()
-			this.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+			geometry = new THREE.BufferGeometry()
+			geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
 
-			this.material = new THREE.PointsMaterial({
-				color: this.particleColor,
+			material = new THREE.PointsMaterial({
+				color: particleColor.value,
 				size: 0.04,
 				transparent: true,
-				opacity: this.opacity,
+				opacity: opacity.value,
 				sizeAttenuation: true,
 				blending: THREE.AdditiveBlending,
 				depthWrite: false
 			})
 
-			this.points = new THREE.Points(this.geometry, this.material)
-			this.scene.add(this.points)
+			points = new THREE.Points(geometry, material)
+			scene.value.add(points)
 
 			// Connection Lines
-			this.lineGeometry = new THREE.BufferGeometry()
-			this.lineMaterial = new THREE.LineBasicMaterial({
-				color: this.particleColor,
+			lineGeometry = new THREE.BufferGeometry()
+			lineMaterial = new THREE.LineBasicMaterial({
+				color: particleColor.value,
 				transparent: true,
 				opacity: 0.12,
 				blending: THREE.AdditiveBlending,
 				depthWrite: false
 			})
-			this.lines = new THREE.LineSegments(this.lineGeometry, this.lineMaterial)
-			this.scene.add(this.lines)
+			lines = new THREE.LineSegments(lineGeometry, lineMaterial)
+			scene.value.add(lines)
 
-			this.animate()
-		},
-		animate() {
-			this.animationId = requestAnimationFrame(this.animate)
+			animate()
+		}
+function animate() {
+			animationId.value = requestAnimationFrame(animate)
 
-			const count = this.particleCount
-			const half = this.depth / 2
-			const posArr = this.geometry.attributes.position.array
+			const count = particleCount.value
+			const half = depth.value / 2
+			const posArr = geometry.attributes.position.array
 			const linePositions = []
-			const connDist = this.connectionDistance
+			const connDist = connectionDistance.value
 
 			for (let i = 0; i < count; i++) {
-				const pData = this.particlesData[i]
+				const pData = particlesData[i]
 				posArr[i * 3] += pData.velocity.x
 				posArr[i * 3 + 1] += pData.velocity.y
 				posArr[i * 3 + 2] += pData.velocity.z
@@ -142,31 +129,46 @@ export default {
 				}
 			}
 
-			this.geometry.attributes.position.needsUpdate = true
-			this.lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3))
+			geometry.attributes.position.needsUpdate = true
+			lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3))
 
 			// Subtle rotation following mouse
-			this.points.rotation.y += 0.0003
-			this.lines.rotation.y += 0.0003
-			this.points.rotation.x = this.mouse.y * 0.1
-			this.lines.rotation.x = this.mouse.y * 0.1
+			points.rotation.y += 0.0003
+			lines.rotation.y += 0.0003
+			points.rotation.x = mouse.value.y * 0.1
+			lines.rotation.x = mouse.value.y * 0.1
 
-			this.renderer.render(this.scene, this.camera)
-		},
-		onResize() {
-			if (!this.renderer || !this.$refs.container) return
-			const w = this.$refs.container.clientWidth
-			const h = this.$refs.container.clientHeight
-			this.camera.aspect = w / h
-			this.camera.updateProjectionMatrix()
-			this.renderer.setSize(w, h)
-		},
-		onMouseMove(e) {
-			this.mouse.x = (e.clientX / window.innerWidth - 0.5) * 2
-			this.mouse.y = (e.clientY / window.innerHeight - 0.5) * 2
+			renderer.value.render(scene.value, camera.value)
 		}
-	}
-}
+function onResize() {
+			if (!renderer.value || !container.value) return
+			const w = container.value.clientWidth
+			const h = container.value.clientHeight
+			camera.value.aspect = w / h
+			camera.value.updateProjectionMatrix()
+			renderer.value.setSize(w, h)
+		}
+function onMouseMove(e) {
+			mouse.value.x = (e.clientX / window.innerWidth - 0.5) * 2
+			mouse.value.y = (e.clientY / window.innerHeight - 0.5) * 2
+		}
+onMounted(() => {
+		initScene()
+		window.addEventListener('resize', onResize)
+		window.addEventListener('mousemove', onMouseMove)
+	})
+onBeforeUnmount(() => {
+		window.removeEventListener('resize', onResize)
+		window.removeEventListener('mousemove', onMouseMove)
+		if (animationId.value) cancelAnimationFrame(animationId.value)
+		if (renderer.value) {
+			renderer.value.dispose()
+			if (geometry) geometry.dispose()
+			if (material) material.dispose()
+			if (lineGeometry) lineGeometry.dispose()
+			if (lineMaterial) lineMaterial.dispose()
+		}
+	})
 </script>
 
 <style scoped>
