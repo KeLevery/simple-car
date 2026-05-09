@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { X } from 'lucide-vue-next'
+
 defineProps<{
   title: string
   open: boolean
@@ -17,7 +19,9 @@ const emit = defineEmits<{
       <section class="dialog-panel" role="dialog" aria-modal="true">
         <header class="dialog-header">
           <h2>{{ title }}</h2>
-          <button class="icon-button" type="button" title="关闭" @click="emit('close')">×</button>
+          <button class="icon-button" type="button" title="关闭" @click="emit('close')">
+            <X :size="18" />
+          </button>
         </header>
         <form class="dialog-form" @submit.prevent="emit('submit')">
           <slot></slot>

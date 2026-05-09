@@ -29,7 +29,9 @@ CREATE TABLE IF NOT EXISTS `car` (
     `temperature` decimal(10,2) DEFAULT '0.00' COMMENT '温度',
     `car_state` tinyint DEFAULT '1' COMMENT '1离线 2关机 3开机',
     `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_license_tag` (`license_tag`),
+    UNIQUE KEY `uk_frame_number` (`frame_number`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='车辆表';
 
 -- User-Car relationship
@@ -39,7 +41,9 @@ CREATE TABLE IF NOT EXISTS `user_car` (
     `car_id` bigint NOT NULL,
     `is_default` tinyint DEFAULT '0',
     `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_user_car` (`user_id`, `car_id`),
+    KEY `idx_car_id` (`car_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户车辆关联表';
 
 -- Charging order table

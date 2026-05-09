@@ -10,11 +10,14 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 @Component
 public class JwtUtils {
+    public static final String ACCOUNT_TYPE_ADMIN = "ADMIN";
+    public static final String ACCOUNT_TYPE_USER = "USER";
 
     @Value("${jwt.secret}")
     private String secret;
@@ -24,6 +27,15 @@ public class JwtUtils {
 
     public String generateToken(String username) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put("accountType", ACCOUNT_TYPE_USER);
+        claims.put("roles", List.of("ROLE_USER"));
+        return createToken(claims, username);
+    }
+
+    public String generateAdminToken(String username, List<String> roles) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("accountType", ACCOUNT_TYPE_ADMIN);
+        claims.put("roles", roles);
         return createToken(claims, username);
     }
 
@@ -49,6 +61,19 @@ public class JwtUtils {
 
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
+    }
+
+    public String extractAccountType(String token) {
+        return extractClaim(token, claims -> claims.get("accountType", String.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> extractRoles(String token) {
+        Object roles = extractAllClaims(token).get("roles");
+        if (roles instanceof List<?>) {
+            return ((List<?>) roles).stream().filter(String.class::isInstance).map(String.class::cast).toList();
+        }
+        return List.of();
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

@@ -18,6 +18,8 @@ Thumbs.db
 *.log
 *.md
 !README.md
+!docs/
+!docs/**/*.md
 任务书*
 接口文档*
 ~$*.docx

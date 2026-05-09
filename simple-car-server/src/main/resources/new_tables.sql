@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS `rescue_request` (
     `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
     `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    KEY `idx_user_id` (`user_id`)
+    KEY `idx_rescue_user_time` (`user_id`, `create_time`),
+    KEY `idx_rescue_status_time` (`status`, `create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='救援请求表';
 
 -- 2. 车辆违章记录表
@@ -33,16 +34,21 @@ CREATE TABLE IF NOT EXISTS `vehicle_violation` (
     `violation_time` datetime DEFAULT NULL COMMENT '违章时间',
     `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    KEY `idx_car_id` (`car_id`)
+    KEY `idx_violation_car_time` (`car_id`, `violation_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='车辆违章记录表';
 
--- =====================================================
--- 示例数据（可选）
--- =====================================================
-
--- 违章示例数据（假设 car_id = 1）
-INSERT INTO `vehicle_violation` (`car_id`, `violation_type`, `location`, `fine_amount`, `deduct_points`, `status`, `violation_time`) VALUES
-(1, '闯红灯', '南京市玄武区中山东路与太平北路交叉口', 200.00, 6, 0, '2026-03-15 08:30:00'),
-(1, '违章停车', '南京市鼓楼区中央路98号', 100.00, 0, 1, '2026-02-20 14:15:00'),
-(1, '超速20%以上', '南京市江宁区宁杭高速K120', 200.00, 6, 0, '2026-03-28 10:45:00'),
-(1, '未按规定车道行驶', '南京市建邺区河西大街', 100.00, 3, 1, '2026-01-10 17:20:00');
+-- 违章示例数据
+INSERT INTO `vehicle_violation` (`id`, `car_id`, `violation_type`, `location`, `fine_amount`, `deduct_points`, `status`, `violation_time`)
+VALUES
+    (1, 1, '闯红灯', '南京市玄武区中山东路与太平北路交叉口', 200.00, 6, 0, '2026-03-15 08:30:00'),
+    (2, 1, '违章停车', '南京市鼓楼区中央路98号', 100.00, 0, 1, '2026-02-20 14:15:00'),
+    (3, 1, '超速20%以上', '南京市江宁区宁杭高速K120', 200.00, 6, 0, '2026-03-28 10:45:00'),
+    (4, 1, '未按规定车道行驶', '南京市建邺区河西大街', 100.00, 3, 1, '2026-01-10 17:20:00')
+ON DUPLICATE KEY UPDATE
+    `car_id` = VALUES(`car_id`),
+    `violation_type` = VALUES(`violation_type`),
+    `location` = VALUES(`location`),
+    `fine_amount` = VALUES(`fine_amount`),
+    `deduct_points` = VALUES(`deduct_points`),
+    `status` = VALUES(`status`),
+    `violation_time` = VALUES(`violation_time`);

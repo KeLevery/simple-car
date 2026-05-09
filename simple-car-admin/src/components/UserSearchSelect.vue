@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, shallowRef, watch } from 'vue'
-import { Search } from 'lucide-vue-next'
+import { Search, X } from 'lucide-vue-next'
 import { adminApi, type UserItem } from '@/api/admin'
 
 const props = defineProps<{
@@ -79,10 +79,12 @@ function formatUser(user: UserItem) {
       <Search :size="16" />
       <input
         v-model="keyword"
-        :placeholder="placeholder || '输入用户ID / 账号 / 昵称 / 手机号'"
+        :placeholder="placeholder || '输入用户 ID / 账号 / 昵称 / 手机号'"
         @focus="openPanel"
       />
-      <button v-if="model" type="button" title="清空用户" @click="clearUser">×</button>
+      <button v-if="model" type="button" title="清空用户" @click="clearUser">
+        <X :size="14" />
+      </button>
     </div>
     <div v-if="panelOpen" class="user-search-panel">
       <div v-if="loading" class="user-search-state">搜索中</div>

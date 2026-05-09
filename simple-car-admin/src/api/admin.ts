@@ -115,12 +115,25 @@ export interface CommunityPostItem {
   createTime: string
 }
 
+export interface AdminSession {
+  username: string
+  roles: string[]
+  authenticated: boolean
+}
+
+export interface AdminLoginResult {
+  token: string
+  username: string
+  roles: string[]
+}
+
 export async function login(username: string, password: string) {
-  const response = await http.post('/login', { username, password })
-  return response.data.data as { token: string }
+  const response = await http.post('/admin/auth/login', { username, password })
+  return response.data.data as AdminLoginResult
 }
 
 export const adminApi = {
+  session: () => request<AdminSession>('/admin/session'),
   overview: () => request<Overview>('/admin/overview'),
   users: (keyword?: string, limit?: number) =>
     request<UserItem[]>('/admin/users', {

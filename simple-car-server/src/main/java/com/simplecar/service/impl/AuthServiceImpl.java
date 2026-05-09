@@ -1,11 +1,19 @@
 package com.simplecar.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.simplecar.util.JwtUtils;
+import com.simplecar.mapper.ChargingOrderMapper;
+import com.simplecar.mapper.UserMapper;
+import com.simplecar.mapper.UserVehicleMapper;
+import com.simplecar.mapper.VehicleMapper;
+import com.simplecar.mapper.VehicleMileageMapper;
 import com.simplecar.model.dto.LoginRequest;
-import com.simplecar.model.entity.*;
-import com.simplecar.mapper.*;
+import com.simplecar.model.entity.ChargingOrder;
+import com.simplecar.model.entity.User;
+import com.simplecar.model.entity.UserVehicle;
+import com.simplecar.model.entity.Vehicle;
+import com.simplecar.model.entity.VehicleMileage;
 import com.simplecar.service.AuthService;
+import com.simplecar.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,7 +22,11 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +47,9 @@ public class AuthServiceImpl implements AuthService {
         }
         if (!matchesPassword(loginRequest.getPassword(), user.getPassword())) {
             throw new RuntimeException("密码错误");
+        }
+        if (user.getStatus() != null && user.getStatus() == 0) {
+            throw new RuntimeException("账号已被禁用");
         }
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                 loginRequest.getUsername(), null, Collections.emptyList());
@@ -116,10 +131,10 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("账号和密码不能为空");
         }
         if (account.length() != 11) {
-            throw new RuntimeException("请输入11位手机号");
+            throw new RuntimeException("请输入 11 位手机号");
         }
         if (rawPwd.length() < 6) {
-            throw new RuntimeException("密码长度不能少于6位");
+            throw new RuntimeException("密码长度不能少于 6 位");
         }
 
         User exists = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, account));
@@ -145,7 +160,7 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("账号和新密码不能为空");
         }
         if (pwd.length() < 6) {
-            throw new RuntimeException("新密码长度不能少于6位");
+            throw new RuntimeException("新密码长度不能少于 6 位");
         }
 
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, account));

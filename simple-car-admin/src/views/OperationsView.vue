@@ -87,6 +87,23 @@ const serviceColumns = [
   { key: 'status', label: '状态' }
 ]
 
+const appointmentStatusLabels: Record<string, string> = {
+  '0': '待确认',
+  '1': '处理中',
+  '2': '已完成'
+}
+
+const rescueStatusLabels: Record<string, string> = {
+  '0': '待处理',
+  '1': '救援中',
+  '2': '已完成'
+}
+
+const stationStatusLabels: Record<string, string> = {
+  '0': '停用',
+  '1': '运营'
+}
+
 const filteredAppointments = computed(() => filterRows(appointments.items.value, ['workNo', 'customerName', 'customerPhone']))
 const filteredRescues = computed(() => filterRows(rescues.items.value, ['contactName', 'contactPhone', 'location']))
 const filteredChargingStations = computed(() => filterRows(chargingStations.items.value, ['stationName', 'cityId', 'address']))
@@ -231,11 +248,13 @@ function toServiceStation(row: unknown) {
     </template>
   </Toolbar>
 
-  <div class="segmented-tabs">
+  <div class="segmented-tabs" role="tablist" aria-label="服务运营分类">
     <button
       v-for="tab in tabs"
       :key="tab.key"
       type="button"
+      role="tab"
+      :aria-selected="activeTab === tab.key"
       :class="{ active: activeTab === tab.key }"
       @click="activeTab = tab.key"
     >
@@ -251,7 +270,7 @@ function toServiceStation(row: unknown) {
   >
     <template #totalAmount="{ value }">¥{{ Number(value || 0).toFixed(2) }}</template>
     <template #status="{ value }">
-      <StatusBadge :value="Number(value)" :labels="{ 0: '待确认', 1: '处理中', 2: '已完成' }" />
+      <StatusBadge :value="Number(value)" :labels="appointmentStatusLabels" />
     </template>
     <template #actions="{ row }">
       <button class="text-button" type="button" @click="nextAppointmentStatus(toAppointment(row))">
@@ -268,7 +287,7 @@ function toServiceStation(row: unknown) {
     :loading="rescues.loading.value"
   >
     <template #status="{ value }">
-      <StatusBadge :value="Number(value)" :labels="{ 0: '待处理', 1: '救援中', 2: '已完成' }" />
+      <StatusBadge :value="Number(value)" :labels="rescueStatusLabels" />
     </template>
     <template #actions="{ row }">
       <button class="text-button" type="button" @click="nextRescueStatus(toRescue(row))">
@@ -285,7 +304,7 @@ function toServiceStation(row: unknown) {
     :loading="chargingStations.loading.value"
   >
     <template #status="{ value }">
-      <StatusBadge :value="Number(value)" :labels="{ 0: '停用', 1: '运营' }" />
+      <StatusBadge :value="Number(value)" :labels="stationStatusLabels" />
     </template>
     <template #actions="{ row }">
       <div class="row-actions">
@@ -312,7 +331,7 @@ function toServiceStation(row: unknown) {
     :loading="serviceStations.loading.value"
   >
     <template #status="{ value }">
-      <StatusBadge :value="Number(value)" :labels="{ 0: '停用', 1: '运营' }" />
+      <StatusBadge :value="Number(value)" :labels="stationStatusLabels" />
     </template>
     <template #actions="{ row }">
       <div class="row-actions">
