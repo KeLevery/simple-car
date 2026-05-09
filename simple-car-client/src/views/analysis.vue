@@ -61,28 +61,25 @@
 	</div>
 </template>
 
-<script>
+<script setup>
 import {
 	chargeOrderList,
 	mileageList
 } from '@/api/analysis';
-import * as echarts from 'echarts';
+import { graphic, init as initEcharts } from '@/util/echarts';
 import Tabbar from "@/components/Tabbar.vue"
+import { nextTick, ref } from 'vue'
 
-export default {
-	components: {
-		Tabbar
-	},
-	data() {
-		return {
-			active: '/analysis',
-			updateTime: '',
-			MarchTotal: 0,
-			MayTotal: 0,
-			totalChargeCount: 0,
-			totalCharged: '0.0',
-			totalPay: '0.0',
-			option: {
+const firstChartEl = ref(null)
+const secondChartEl = ref(null)
+const active = ref('/analysis')
+const updateTime = ref('')
+const MarchTotal = ref(0)
+const MayTotal = ref(0)
+const totalChargeCount = ref(0)
+const totalCharged = ref('0.0')
+const totalPay = ref('0.0')
+const option = ref({
 				backgroundColor: 'transparent',
 				tooltip: {
 					trigger: 'axis',
@@ -124,7 +121,7 @@ export default {
 						name: '充电次数', type: 'bar', barWidth: 6, data: [],
 						itemStyle: {
 							borderRadius: [3, 3, 0, 0],
-							color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+							color: new graphic.LinearGradient(0, 0, 0, 1, [
 								{ offset: 0, color: '#3b82f6' },
 								{ offset: 1, color: 'rgba(59, 130, 246, 0.1)' }
 							])
@@ -134,7 +131,7 @@ export default {
 						name: '充电量', type: 'bar', barWidth: 6, data: [],
 						itemStyle: {
 							borderRadius: [3, 3, 0, 0],
-							color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+							color: new graphic.LinearGradient(0, 0, 0, 1, [
 								{ offset: 0, color: '#22c55e' },
 								{ offset: 1, color: 'rgba(34, 197, 94, 0.1)' }
 							])
@@ -144,15 +141,15 @@ export default {
 						name: '花费', type: 'bar', barWidth: 6, data: [],
 						itemStyle: {
 							borderRadius: [3, 3, 0, 0],
-							color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+							color: new graphic.LinearGradient(0, 0, 0, 1, [
 								{ offset: 0, color: '#f59e0b' },
 								{ offset: 1, color: 'rgba(245, 158, 11, 0.1)' }
 							])
 						}
 					}
 				]
-			},
-			option2: {
+			})
+const option2 = ref({
 				backgroundColor: 'transparent',
 				tooltip: {
 					trigger: 'axis',
@@ -194,7 +191,7 @@ export default {
 						name: '耗电量', type: 'line', smooth: true, symbol: 'circle', symbolSize: 6,
 						lineStyle: { width: 2 },
 						areaStyle: {
-							color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+							color: new graphic.LinearGradient(0, 0, 0, 1, [
 								{ offset: 0, color: 'rgba(59, 130, 246, 0.1)' },
 								{ offset: 1, color: 'rgba(59, 130, 246, 0)' }
 							])
@@ -205,7 +202,7 @@ export default {
 						name: '行驶里程', type: 'line', smooth: true, symbol: 'circle', symbolSize: 6,
 						lineStyle: { width: 2 },
 						areaStyle: {
-							color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+							color: new graphic.LinearGradient(0, 0, 0, 1, [
 								{ offset: 0, color: 'rgba(245, 158, 11, 0.1)' },
 								{ offset: 1, color: 'rgba(245, 158, 11, 0)' }
 							])
@@ -213,24 +210,18 @@ export default {
 						data: []
 					}
 				]
-			}
-		};
-	},
-	created() {
-		this.initData();
-	},
-	methods: {
-		initData() {
-			this.getMileageList();
-		},
-		getMileageList() {
+			})
+function initData() {
+			getMileageList();
+		}
+function getMileageList() {
 			const carInfoLocal = window.localStorage.getItem('carInfo');
 			if (!carInfoLocal) return;
 			let carId = JSON.parse(carInfoLocal).carId;
 
 			mileageList({ carId }).then(res => {
 				if (res.code === 200 && res.data && res.data.length > 0) {
-					this.updateTime = res.data[0].createTime;
+					updateTime.value = res.data[0].createTime;
 
 					// 动态按月聚合里程数据
 					const monthlyMileage = {};
@@ -249,21 +240,21 @@ export default {
 						const month2 = months[months.length - 1];
 						const prevMonth = months[months.length - 3] || month1;
 
-						this.MarchTotal = monthlyMileage[month1].length > 0 && monthlyMileage[prevMonth] && monthlyMileage[prevMonth].length > 0
+						MarchTotal.value = monthlyMileage[month1].length > 0 && monthlyMileage[prevMonth] && monthlyMileage[prevMonth].length > 0
 							? (monthlyMileage[month1][0].carMileage - monthlyMileage[prevMonth][0].carMileage).toFixed(2) : 0;
-						this.MayTotal = monthlyMileage[month2].length > 0 && monthlyMileage[month1].length > 0
+						MayTotal.value = monthlyMileage[month2].length > 0 && monthlyMileage[month1].length > 0
 							? (monthlyMileage[month2][0].carMileage - monthlyMileage[month1][0].carMileage).toFixed(2) : 0;
 
-						this.option2.xAxis.data = [month1.substring(5) + '月', month2.substring(5) + '月'];
-						this.option2.series[1].data[0] = this.MarchTotal;
-						this.option2.series[1].data[1] = this.MayTotal;
+						option2.value.xAxis.data = [month1.substring(5) + '月', month2.substring(5) + '月'];
+						option2.value.series[1].data[0] = MarchTotal.value;
+						option2.value.series[1].data[1] = MayTotal.value;
 					}
 
-					this.getOrderList();
+					getOrderList();
 				}
 			});
-		},
-		getOrderList() {
+		}
+function getOrderList() {
 			const carInfoLocal = window.localStorage.getItem('carInfo');
 			if (!carInfoLocal) return;
 			let carId = JSON.parse(carInfoLocal).carId;
@@ -290,48 +281,47 @@ export default {
 					const chartData = recentMonths.map(m => monthlyData[m] || { count: 0, quantity: 0, pay: 0 });
 
 					// 更新X轴标签
-					this.option.xAxis.data = recentMonths.map(m => m.substring(5) + '月');
+					option.value.xAxis.data = recentMonths.map(m => m.substring(5) + '月');
 
 					const times = chartData.map(item => item.count);
 					const chargedQuantity = chartData.map(item => item.quantity.toFixed(1));
 					const actualPay = chartData.map(item => item.pay.toFixed(1));
 
 					// Summary stats
-					this.totalChargeCount = times.reduce((a, b) => a + b, 0);
-					this.totalCharged = chartData.reduce((a, b) => a + b.quantity, 0).toFixed(1);
-					this.totalPay = chartData.reduce((a, b) => a + b.pay, 0).toFixed(1);
+					totalChargeCount.value = times.reduce((a, b) => a + b, 0);
+					totalCharged.value = chartData.reduce((a, b) => a + b.quantity, 0).toFixed(1);
+					totalPay.value = chartData.reduce((a, b) => a + b.pay, 0).toFixed(1);
 
-					this.option.series[0].data = times;
-					this.option.series[1].data = chargedQuantity;
-					this.option.series[2].data = actualPay;
+					option.value.series[0].data = times;
+					option.value.series[1].data = chargedQuantity;
+					option.value.series[2].data = actualPay;
 
 					// 第二个图表取最近两个月的耗电量
 					if (recentMonths.length >= 2) {
-						this.option2.series[0].data = [
+						option2.value.series[0].data = [
 							chartData[chartData.length - 2].quantity.toFixed(1),
 							chartData[chartData.length - 1].quantity.toFixed(1)
 						];
 					}
 
-					this.$nextTick(() => {
-						this.initCharts();
+					nextTick(() => {
+						initCharts();
 					});
 				}
 			});
-		},
-		initCharts() {
-			this.initChart('firstChartEl', this.option);
-			this.initChart('secondChartEl', this.option2);
-		},
-		initChart(refName, option) {
-			const chartEl = this.$refs[refName];
+		}
+function initCharts() {
+			initChart('firstChartEl', option.value);
+			initChart('secondChartEl', option2.value);
+		}
+function initChart(refName, option) {
+			const chartEl = refName === 'firstChartEl' ? firstChartEl.value : secondChartEl.value;
 			if (chartEl) {
-				const chart = echarts.init(chartEl);
+				const chart = initEcharts(chartEl);
 				chart.setOption(option);
 			}
 		}
-	}
-};
+initData();
 </script>
 
 <style scoped lang="scss">

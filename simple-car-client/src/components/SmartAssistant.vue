@@ -6,7 +6,7 @@
 		</div>
 
 		<!-- Popup -->
-		<van-popup v-model="open" position="bottom" round class="sa-popup" safe-area-inset-bottom>
+		<van-popup v-model:show="open" position="bottom" round class="sa-popup" safe-area-inset-bottom>
 			<div class="sa-header">
 				<div class="sa-title">智能助手</div>
 				<van-icon name="cross" class="sa-close" @click="open = false" />
@@ -69,46 +69,33 @@
 	</div>
 </template>
 
-<script>
+<script setup>
 import { getPageIndex } from '@/assistant/pageIndex'
+import { computed, nextTick, ref, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 
 const RECENT_KEY = 'sa_recent_pages_v1'
-
 function normalizeQuery(q) {
 	return String(q || '').trim().toLowerCase()
 }
-
 function includesText(hay, needle) {
 	if (!hay || !needle) return false
 	return String(hay).toLowerCase().includes(needle)
 }
 
-export default {
-	name: 'SmartAssistant',
-	data() {
-		return {
-			open: false,
-			query: '',
-			results: [],
-			recentPages: [],
-			pinnedPages: [],
-			recentMax: 5
-		}
-	},
-	computed: {
-		normalizedQuery() {
-			return normalizeQuery(this.query)
-		}
-	},
-	watch: {
-		open(val) {
-			if (val) {
-				this.refreshResults()
-			}
-		}
-	},
-	methods: {
-		readRecentPaths() {
+defineOptions({ name: 'SmartAssistant' })
+const router = useRouter()
+const route = useRoute()
+const open = ref(false)
+const query = ref('')
+const results = ref([])
+const recentPages = ref([])
+const pinnedPages = ref([])
+const recentMax = ref(5)
+const normalizedQuery = computed(() => {
+			return normalizeQuery(query.value)
+		})
+function readRecentPaths() {
 			try {
 				const raw = window.localStorage.getItem(RECENT_KEY)
 				const arr = JSON.parse(raw || '[]')
@@ -117,51 +104,51 @@ export default {
 			} catch (e) {
 				return []
 			}
-		},
-		writeRecentPaths(paths) {
-			window.localStorage.setItem(RECENT_KEY, JSON.stringify(paths.slice(0, this.recentMax)))
-		},
-		pushRecentPath(path) {
-			const paths = this.readRecentPaths().filter(p => p !== path)
+		}
+function writeRecentPaths(paths) {
+			window.localStorage.setItem(RECENT_KEY, JSON.stringify(paths.slice(0, recentMax.value)))
+		}
+function pushRecentPath(path) {
+			const paths = readRecentPaths().filter(p => p !== path)
 			paths.unshift(path)
-			this.writeRecentPaths(paths)
+			writeRecentPaths(paths)
 
 			// keep UI in sync if popup is open
-			this.refreshRecentAndPinned(getPageIndex())
-		},
-		refreshRecentAndPinned(pages) {
+			refreshRecentAndPinned(getPageIndex())
+		}
+function refreshRecentAndPinned(pages) {
 			const byPath = new Map(pages.map(p => [p.path, p]))
-			const recentPaths = this.readRecentPaths()
+			const recentPaths = readRecentPaths()
 
-			this.recentPages = recentPaths
+			recentPages.value = recentPaths
 				.map(p => byPath.get(p))
 				.filter(Boolean)
-				.slice(0, this.recentMax)
+				.slice(0, recentMax.value)
 
 			const recentSet = new Set(recentPaths)
-			this.pinnedPages = pages
+			pinnedPages.value = pages
 				.filter(p => p && p.pinned)
 				.filter(p => !recentSet.has(p.path))
 				.sort((a, b) => (a.pinnedOrder || 0) - (b.pinnedOrder || 0))
-		},
-		onCancel() {
-			this.open = false
-		},
-		onSearch() {
-			this.refreshResults()
-		},
-		onInput() {
-			if (this.open) {
-				this.refreshResults()
+		}
+function onCancel() {
+			open.value = false
+		}
+function onSearch() {
+			refreshResults()
+		}
+function onInput() {
+			if (open.value) {
+				refreshResults()
 			}
-		},
-		refreshResults() {
-			const q = normalizeQuery(this.query)
+		}
+function refreshResults() {
+			const q = normalizeQuery(query.value)
 			const pages = getPageIndex()
-			this.refreshRecentAndPinned(pages)
+			refreshRecentAndPinned(pages)
 
 			if (!q) {
-				this.results = []
+				results.value = []
 				return
 			}
 
@@ -196,19 +183,22 @@ export default {
 				.sort((a, b) => b.score - a.score)
 				.slice(0, 5)
 
-			this.results = scored
-		},
-		goto(path) {
-			this.open = false
-			this.query = ''
-			this.results = []
-			this.pushRecentPath(path)
-			this.$nextTick(() => {
-				this.$router.push({ path })
+			results.value = scored
+		}
+function goto(path) {
+			open.value = false
+			query.value = ''
+			results.value = []
+			pushRecentPath(path)
+			nextTick(() => {
+				router.push({ path })
 			})
 		}
-	}
-}
+watch(open, (val) => {
+			if (val) {
+				refreshResults()
+			}
+		})
 </script>
 
 <style lang="scss" scoped>

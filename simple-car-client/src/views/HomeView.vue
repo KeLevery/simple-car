@@ -90,7 +90,7 @@
 
 		<!-- 车辆选择弹窗 -->
 		<van-action-sheet
-			v-model="showCarPicker"
+			v-model:show="showCarPicker"
 			:actions="carActions"
 			cancel-text="取消"
 			close-on-click-action
@@ -102,117 +102,118 @@
 	</div>
 </template>
 
-<script>
+<script setup>
 import Tabbar from "@/components/Tabbar.vue"
 import SmartAssistant from "@/components/SmartAssistant.vue"
 import { carInfo } from '@/api/carInfo'
+import unlockIcon from '@/assets/unlock.png'
+import unlockActiveIcon from '@/assets/unlock_act.png'
+import lockedIcon from '@/assets/locked.png'
+import lockedActiveIcon from '@/assets/locked_act.png'
+import closeWindowIcon from '@/assets/closeWindow.png'
+import closeWindowActiveIcon from '@/assets/closeWindow_act.png'
+import closeTrunkIcon from '@/assets/closeTrunk.png'
+import closeTrunkActiveIcon from '@/assets/closeTrunk_act.png'
+import { computed, onActivated, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-export default {
-	name: 'home',
-	components: { Tabbar, SmartAssistant },
-	data() {
-		return {
-			carInfos: {},
-			carId: 0,
-			carList: [],
-			showCarPicker: false,
-			controlAct: null,
-			controlList: [
-				{ label: '车门解锁', defaultSrc: require('../assets/unlock.png'), actSrc: require('../assets/unlock_act.png') },
-				{ label: '车门上锁', defaultSrc: require('../assets/locked.png'), actSrc: require('../assets/locked_act.png') },
-				{ label: '关闭车窗', defaultSrc: require('../assets/closeWindow.png'), actSrc: require('../assets/closeWindow_act.png') },
-				{ label: '关闭后备箱', defaultSrc: require('../assets/closeTrunk.png'), actSrc: require('../assets/closeTrunk_act.png') },
-			],
-			enduranceMileage: 0,
-			batteryPer: 0,
-		}
-	},
-	computed: {
-		greeting() {
+defineOptions({ name: 'home' })
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const carInfos = ref({})
+const carId = ref(0)
+const carList = ref([])
+const showCarPicker = ref(false)
+const controlAct = ref(null)
+const controlList = ref([
+				{ label: '车门解锁', defaultSrc: unlockIcon, actSrc: unlockActiveIcon },
+				{ label: '车门上锁', defaultSrc: lockedIcon, actSrc: lockedActiveIcon },
+				{ label: '关闭车窗', defaultSrc: closeWindowIcon, actSrc: closeWindowActiveIcon },
+				{ label: '关闭后备箱', defaultSrc: closeTrunkIcon, actSrc: closeTrunkActiveIcon },
+			])
+const enduranceMileage = ref(0)
+const batteryPer = ref(0)
+const greeting = computed(() => {
 			const h = new Date().getHours();
 			if (h < 6) return '夜深了';
 			if (h < 12) return '早上好';
 			if (h < 14) return '中午好';
 			if (h < 18) return '下午好';
 			return '晚上好';
-		},
-		carActions() {
-			const list = this.carList.map(car => ({
+		})
+const carActions = computed(() => {
+			const list = carList.value.map(car => ({
 				name: car.carName + ' (' + car.licenseTag + ')',
 				carId: car.carId,
-				color: car.carId === this.carId ? 'var(--accent)' : undefined
+				color: car.carId === carId.value ? 'var(--accent)' : undefined
 			}));
 			list.push({ name: '＋ 添加新车辆', carId: '__ADD__', color: 'var(--accent)' });
 			return list;
-		},
-		dashArray() {
+		})
+const dashArray = computed(() => {
 			return 2 * Math.PI * 52;
-		},
-		dashOffset() {
-			const pct = Math.max(0, Math.min(100, this.batteryPer));
-			return this.dashArray * (1 - pct / 100);
-		}
-	},
-	created() {
-		this.initCarData();
-		this.checkLogin();
-	},
-	activated() {
-		// Refresh car list when returning (e.g. after adding a car)
-		this.initCarData();
-	},
-	methods: {
-		initCarData() {
+		})
+const dashOffset = computed(() => {
+			const pct = Math.max(0, Math.min(100, batteryPer.value));
+			return dashArray.value * (1 - pct / 100);
+		})
+function initCarData() {
 			const carInfoLocal = window.localStorage.getItem('carInfo');
 			if (carInfoLocal) {
-				this.carId = JSON.parse(carInfoLocal).carId;
+				carId.value = JSON.parse(carInfoLocal).carId;
 			}
 			const carListLocal = window.localStorage.getItem('carList');
 			if (carListLocal) {
-				this.carList = JSON.parse(carListLocal);
+				carList.value = JSON.parse(carListLocal);
 			}
-		},
-		onSelectCar(item) {
+		}
+function onSelectCar(item) {
 			if (item.carId === '__ADD__') {
-				this.$router.push('/mine/addCar');
+				router.push('/mine/addCar');
 				return;
 			}
-			this.carId = item.carId;
-			const selectedCar = this.carList.find(c => c.carId === item.carId);
+			carId.value = item.carId;
+			const selectedCar = carList.value.find(c => c.carId === item.carId);
 			window.localStorage.setItem('carInfo', JSON.stringify(selectedCar));
-			this.getCarInfo();
-			this.$toast.success('已切换至 ' + selectedCar.carName);
-		},
-		gotoPage(path) {
-			this.$router.push({ path })
-		},
-		doorTips(text, num) {
-			if (this.controlAct === num) {
-				this.controlAct = null;
+			getCarInfo();
+			toast.success('已切换至 ' + selectedCar.carName);
+		}
+function gotoPage(path) {
+			router.push({ path })
+		}
+function doorTips(text, num) {
+			if (controlAct.value === num) {
+				controlAct.value = null;
 			} else {
-				this.$notify({ type: 'success', message: text });
-				this.controlAct = num;
+				notify({ type: 'success', message: text });
+				controlAct.value = num;
 			}
-		},
-		checkLogin() {
+		}
+function checkLogin() {
 			if (!window.localStorage.getItem('hasLogin')) {
-				this.$router.push({ path: '/' })
+				router.push({ path: '/' })
 			} else {
-				this.getCarInfo();
+				getCarInfo();
 			}
-		},
-		getCarInfo() {
-			if (!this.carId) return;
-			carInfo(this.carId).then(res => {
+		}
+function getCarInfo() {
+			if (!carId.value) return;
+			carInfo(carId.value).then(res => {
 				if (res.code == 200) {
-					this.carInfos = res.data;
-					this.enduranceMileage = this.carInfos.enduranceMileage || 0;
-					this.batteryPer = res.data.remainingPower || 0;
+					carInfos.value = res.data;
+					enduranceMileage.value = carInfos.value.enduranceMileage || 0;
+					batteryPer.value = res.data.remainingPower || 0;
 				}
 			});
-		},
-	}
-};
+		}
+initCarData();
+		checkLogin();
+onActivated(() => {
+		// Refresh car list when returning (e.g. after adding a car)
+		initCarData();
+	})
 </script>
 
 <style lang="scss" scoped>

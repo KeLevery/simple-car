@@ -14,7 +14,7 @@
 
 		<div class="recordWrap" v-if="carList.length > 0">
 			<div class="recordTotal" v-if="historyTotal > 0">共 {{ historyTotal }} 条维保记录</div>
-			<van-list v-model="loading" :finished="finished" finished-text="没有更多了" @load="getRecordList">
+			<van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="getRecordList">
 				<div class="recordCard" v-for="(item, index) in historyArr" :key="index">
 					<div class="card-header">
 						<div class="work-no">{{ item.workNo }}</div>
@@ -56,7 +56,7 @@
 
 		<!-- 车辆选择弹窗 -->
 		<van-action-sheet
-			v-model="showCarPicker"
+			v-model:show="showCarPicker"
 			:actions="carActions"
 			cancel-text="取消"
 			close-on-click-action
@@ -65,122 +65,117 @@
 	</div>
 </template>
 
-<script>
-	import {
+<script setup>
+import {
 		carInfoList,
 		appointmentList
 	} from '@/api/service'
-	export default {
-		data() {
-			return {
-				chooseIndex: 0,
-				historyArr: [],
-				historyTotal: 0,
-				carList: [],
-				carId: 0,
-				loading: false,
-				finished: false,
-				pageNum: 1,
-				showCarPicker: false
-			}
-		},
-		computed: {
-			carActions() {
-				return this.carList.map((item, index) => ({
+import { computed, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
+
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const chooseIndex = ref(0)
+const historyArr = ref([])
+const historyTotal = ref(0)
+const carList = ref([])
+const carId = ref(0)
+const loading = ref(false)
+const finished = ref(false)
+const pageNum = ref(1)
+const showCarPicker = ref(false)
+const carActions = computed(() => {
+				return carList.value.map((item, index) => ({
 					name: item.car.carName + ' (' + item.car.licenseTag + ')',
 					index: index,
-					color: index === this.chooseIndex ? 'var(--accent)' : undefined
+					color: index === chooseIndex.value ? 'var(--accent)' : undefined
 				}));
-			}
-		},
-		created() {
-			this.loadCarList();
-		},
-		methods: {
-			loadCarList() {
+			})
+function loadCarList() {
 				try {
 					const userInfoStr = window.localStorage.getItem('userInfo');
 					if (!userInfoStr) {
-						this.$toast('请先登录');
-						this.finished = true;
+						toast('请先登录');
+						finished.value = true;
 						return;
 					}
 					const userInfo = JSON.parse(userInfoStr);
 					const userId = userInfo.userId || userInfo.id;
 					if (!userId) {
-						this.$toast('用户信息异常');
-						this.finished = true;
+						toast('用户信息异常');
+						finished.value = true;
 						return;
 					}
 					carInfoList(userId).then(res => {
 						if (res.data && res.data.length > 0) {
-							this.carList = res.data;
+							carList.value = res.data;
 							// Use the first car's carId by default
-							this.carId = res.data[0].car.carId || res.data[0].carID;
-							this.chooseIndex = 0;
+							carId.value = res.data[0].car.carId || res.data[0].carID;
+							chooseIndex.value = 0;
 							// Trigger the list loading
-							this.getRecordList();
+							getRecordList();
 						} else {
-							this.finished = true;
+							finished.value = true;
 						}
 					}).catch(err => {
 						console.error('Failed to load car list:', err);
-						this.$toast('加载车辆信息失败');
-						this.finished = true;
+						toast('加载车辆信息失败');
+						finished.value = true;
 					});
 				} catch (e) {
 					console.error('Failed to load car info:', e);
-					this.$toast('加载车辆信息失败');
-					this.finished = true;
+					toast('加载车辆信息失败');
+					finished.value = true;
 				}
-			},
-			onSelectCar(item) {
-				this.chooseIndex = item.index;
-				this.carId = this.carList[item.index].car.carId || this.carList[item.index].carID;
+			}
+function onSelectCar(item) {
+				chooseIndex.value = item.index;
+				carId.value = carList.value[item.index].car.carId || carList.value[item.index].carID;
 				// Reset and reload
-				this.historyArr = [];
-				this.historyTotal = 0;
-				this.pageNum = 1;
-				this.finished = false;
-				this.loading = false;
-				this.getRecordList();
-			},
-			getRecordList() {
-				if (!this.carId) {
-					this.finished = true;
+				historyArr.value = [];
+				historyTotal.value = 0;
+				pageNum.value = 1;
+				finished.value = false;
+				loading.value = false;
+				getRecordList();
+			}
+function getRecordList() {
+				if (!carId.value) {
+					finished.value = true;
 					return;
 				}
-				appointmentList(this.carId, this.pageNum).then(res => {
+				appointmentList(carId.value, pageNum.value).then(res => {
 					if (res.code == 200) {
 						if (res.total > 0) {
-							this.historyTotal = res.total;
-							this.historyArr = this.historyArr.concat(res.rows);
-							this.pageNum++;
+							historyTotal.value = res.total;
+							historyArr.value = historyArr.value.concat(res.rows);
+							pageNum.value++;
 						}
-						this.loading = false;
-						if (this.historyArr.length >= res.total) {
-							this.finished = true;
+						loading.value = false;
+						if (historyArr.value.length >= res.total) {
+							finished.value = true;
 						}
 					} else {
-						this.loading = false;
-						this.finished = true;
+						loading.value = false;
+						finished.value = true;
 					}
 				}).catch(err => {
 					console.error('Failed to load records:', err);
-					this.loading = false;
-					this.finished = true;
+					loading.value = false;
+					finished.value = true;
 				});
-			},
-			statusClass(status) {
+			}
+function statusClass(status) {
 				if (status == 0) return 'pending';
 				if (status == 1) return 'processing';
 				return 'done';
-			},
-			goBack() {
-				this.$router.go(-1);
 			}
-		}
-	}
+function goBack() {
+				router.go(-1);
+			}
+loadCarList();
 </script>
 
 <style lang="scss" scoped>

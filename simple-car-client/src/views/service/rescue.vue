@@ -53,82 +53,75 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { createRescue, rescueList } from '@/api/rescue'
 import dayjs from 'dayjs'
+import { ref } from 'vue'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-export default {
-  name: 'RescueService',
-  data() {
-    return {
-      loading: false,
-      form: {
+defineOptions({ name: 'RescueService' })
+const { toast, notify, dialog } = useVantCompat()
+const loading = ref(false)
+const form = ref({
         contactName: '',
         contactPhone: '',
         location: '',
         description: ''
-      },
-      history: []
-    }
-  },
-  created() {
-    this.initForm()
-    this.fetchHistory()
-  },
-  methods: {
-    initForm() {
+      })
+const history = ref([])
+function initForm() {
       const userInfoStr = localStorage.getItem('userInfo')
       if (userInfoStr) {
         try {
           const userInfo = JSON.parse(userInfoStr)
-          this.form.contactName = userInfo.nickname || userInfo.username || ''
-          this.form.contactPhone = userInfo.phone || ''
+          form.value.contactName = userInfo.nickname || userInfo.username || ''
+          form.value.contactPhone = userInfo.phone || ''
         } catch (e) {
           console.error('解析用户信息失败', e)
         }
       }
-    },
-    async fetchHistory() {
+    }
+async function fetchHistory() {
       const res = await rescueList()
       if (res.code === 200) {
-        this.history = res.data
+        history.value = res.data
       }
-    },
-    async handleRescue() {
-      if (!this.form.contactName || !this.form.contactPhone || !this.form.location) {
-        this.$toast('请填写完整的联系信息和位置')
+    }
+async function handleRescue() {
+      if (!form.value.contactName || !form.value.contactPhone || !form.value.location) {
+        toast('请填写完整的联系信息和位置')
         return
       }
 
-      this.loading = true
+      loading.value = true
       try {
-        const res = await createRescue(this.form)
+        const res = await createRescue(form.value)
         if (res.code === 200) {
-          this.$toast.success('救援请求已发送，请保持电话畅通')
-          this.form.description = '' // 清除故障描述
-          this.fetchHistory()
+          toast.success('救援请求已发送，请保持电话畅通')
+          form.value.description = '' // 清除故障描述
+          fetchHistory()
         } else {
-          this.$toast.fail(res.message || '发送失败')
+          toast.fail(res.message || '发送失败')
         }
       } catch (error) {
-        this.$toast.fail('网络错误，请稍后再试')
+        toast.fail('网络错误，请稍后再试')
       } finally {
-        this.loading = false
+        loading.value = false
       }
-    },
-    getLocation() {
-      this.$toast.loading({
+    }
+function getLocation() {
+      toast.loading({
         message: '获取定位中...',
         forbidClick: true
       })
       
       // 模拟获取定位
       setTimeout(() => {
-        this.form.location = '江苏省南京市江宁区秣陵街道苏源大道'
-        this.$toast.success('已自动获取位置')
+        form.value.location = '江苏省南京市江宁区秣陵街道苏源大道'
+        toast.success('已自动获取位置')
       }, 1000)
-    },
-    getStatusName(status) {
+    }
+function getStatusName(status) {
       const map = {
         0: '待处理',
         1: '救援中',
@@ -136,8 +129,8 @@ export default {
         3: '已取消'
       }
       return map[status] || '未知'
-    },
-    getStatusType(status) {
+    }
+function getStatusType(status) {
       const map = {
         0: 'warning',
         1: 'primary',
@@ -145,16 +138,16 @@ export default {
         3: 'default'
       }
       return map[status] || 'default'
-    },
-    formatDate(date) {
+    }
+function formatDate(date) {
       if (!date) return ''
       const d = new Date(date)
       if (isNaN(d.getTime())) return date
       const pad = (n) => String(n).padStart(2, '0')
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
     }
-  }
-}
+initForm()
+    fetchHistory()
 </script>
 
 <style lang="scss" scoped>

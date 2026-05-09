@@ -36,47 +36,38 @@
 	</div>
 </template>
 
-<script>
+<script setup>
 import { noticeList } from '@/api/notice'
+import { ref } from 'vue'
 
-export default {
-	data() {
-		return {
-			list: [],
-			loading: false,
-			refreshing: false
-		}
-	},
-	created() {
-		this.onLoad()
-	},
-	methods: {
-		onLoad() {
-			this.loading = true
+const list = ref([])
+const loading = ref(false)
+const refreshing = ref(false)
+function onLoad() {
+			loading.value = true
 			noticeList().then(res => {
 				if (res.code === 200) {
-					this.list = res.data
+					list.value = res.data
 				}
-				this.loading = false
-				this.refreshing = false
+				loading.value = false
+				refreshing.value = false
 			}).catch(() => {
-				this.loading = false
-				this.refreshing = false
+				loading.value = false
+				refreshing.value = false
 			})
-		},
-		onRefresh() {
-			this.onLoad()
-		},
-		getTypeName(type) {
+		}
+function onRefresh() {
+			onLoad()
+		}
+function getTypeName(type) {
 			const names = { 1: '系统', 2: '维保', 3: '充电' }
 			return names[type] || '通知'
-		},
-		getTypeClass(type) {
+		}
+function getTypeClass(type) {
 			const classes = { 1: 'sys', 2: 'service', 3: 'charge' }
 			return classes[type] || ''
 		}
-	}
-}
+onLoad()
 </script>
 
 <style lang="scss" scoped>

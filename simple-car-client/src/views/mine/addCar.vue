@@ -83,32 +83,32 @@
 	</div>
 </template>
 
-<script>
+<script setup>
 import { addCar, carInfoList } from '@/api/service'
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-export default {
-	data() {
-		return {
-			submitting: false,
-			form: {
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const submitting = ref(false)
+const form = ref({
 				carName: '',
 				carModels: '',
 				licenseTag: '',
 				frameNumber: ''
-			}
-		}
-	},
-	methods: {
-		vinValidator(val) {
+			})
+function vinValidator(val) {
 			return /^[A-HJ-NPR-Z0-9]{17}$/i.test(val);
-		},
-		async onSubmit() {
-			this.submitting = true;
+		}
+async function onSubmit() {
+			submitting.value = true;
 			try {
 				const userInfoStr = window.localStorage.getItem('userInfo');
 				if (!userInfoStr) {
-					this.$toast('请先登录');
-					this.submitting = false;
+					toast('请先登录');
+					submitting.value = false;
 					return;
 				}
 				const userInfo = JSON.parse(userInfoStr);
@@ -116,10 +116,10 @@ export default {
 
 				const res = await addCar({
 					userId: userId,
-					carName: this.form.carName,
-					carModels: this.form.carModels,
-					licenseTag: this.form.licenseTag,
-					frameNumber: this.form.frameNumber.toUpperCase()
+					carName: form.value.carName,
+					carModels: form.value.carModels,
+					licenseTag: form.value.licenseTag,
+					frameNumber: form.value.frameNumber.toUpperCase()
 				});
 
 				if (res.code === 200) {
@@ -142,22 +142,20 @@ export default {
 						console.error('Failed to refresh car list:', e);
 					}
 
-					this.$toast.success('车辆添加成功');
+					toast.success('车辆添加成功');
 					setTimeout(() => {
-						this.$router.back();
+						router.back();
 					}, 1000);
 				} else {
-					this.$toast.fail(res.msg || '添加失败');
+					toast.fail(res.msg || '添加失败');
 				}
 			} catch (e) {
 				console.error('Failed to add car:', e);
-				this.$toast.fail('网络异常，请稍后重试');
+				toast.fail('网络异常，请稍后重试');
 			} finally {
-				this.submitting = false;
+				submitting.value = false;
 			}
 		}
-	}
-}
 </script>
 
 <style lang="scss" scoped>

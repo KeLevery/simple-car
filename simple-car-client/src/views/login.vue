@@ -57,46 +57,40 @@
 	</div>
 </template>
 
-<script>
+<script setup>
 import {
 	userLogin,
 	userInfo,
 	forgotPassword as resetPassword
 } from '@/api/user'
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-export default {
-	name: 'login',
-	data() {
-		return {
-			account: '',
-			password: ''
-		}
-	},
-	created() {
-		this.checkLogin()
-		if (this.$route.query.account) {
-			this.account = this.$route.query.account
-		}
-	},
-	methods: {
-		checkLogin() {
+defineOptions({ name: 'login' })
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const account = ref('')
+const password = ref('')
+function checkLogin() {
 			if (window.localStorage.getItem('hasLogin')) {
-				this.$router.push('/home')
+				router.push('/home')
 			}
-		},
-		loginSubmit() {
-			if (this.account.length == 0) {
-				this.$toast.fail('请输入手机号！');
-			} else if (this.password.length == 0) {
-				this.$toast.fail('请输入密码！');
+		}
+function loginSubmit() {
+			if (account.value.length == 0) {
+				toast.fail('请输入手机号！');
+			} else if (password.value.length == 0) {
+				toast.fail('请输入密码！');
 			} else {
-				this.$toast.loading({
+				toast.loading({
 					message: '登录中...',
 					forbidClick: true,
 				});
 				userLogin({
-					username: this.account,
-					password: this.password
+					username: account.value,
+					password: password.value
 				}).then(res => {
 					if (res.code == 200) {
 						// 后端返回：{ code, msg, data: { token } }
@@ -105,24 +99,24 @@ export default {
 								window.localStorage.setItem('token', token);
 							}
 
-						this.getUserInfo();
+						getUserInfo();
 					} else {
-						this.$toast.fail(res.msg || '登录失败');
+						toast.fail(res.msg || '登录失败');
 					}
 				})
 			}
-		},
-		onRegister() {
-			this.$router.push('/register')
-		},
-		onForgotPassword() {
-			const usernameInput = window.prompt('请输入账号手机号', this.account || '');
+		}
+function onRegister() {
+			router.push('/register')
+		}
+function onForgotPassword() {
+			const usernameInput = window.prompt('请输入账号手机号', account.value || '');
 			if (usernameInput === null) {
 				return;
 			}
 			const username = usernameInput.trim();
 			if (!/^1\d{10}$/.test(username)) {
-				this.$toast.fail('请输入11位手机号');
+				toast.fail('请输入11位手机号');
 				return;
 			}
 
@@ -132,11 +126,11 @@ export default {
 			}
 			const newPassword = newPasswordInput.trim();
 			if (newPassword.length < 6) {
-				this.$toast.fail('新密码长度不能少于6位');
+				toast.fail('新密码长度不能少于6位');
 				return;
 			}
 
-			this.$toast.loading({
+			toast.loading({
 				message: '重置中...',
 				forbidClick: true,
 			});
@@ -145,17 +139,17 @@ export default {
 				newPassword
 			}).then(res => {
 				if (res.code == 200) {
-					this.account = username;
-					this.password = '';
-					this.$toast.success('密码已重置，请重新登录');
+					account.value = username;
+					password.value = '';
+					toast.success('密码已重置，请重新登录');
 				} else {
-					this.$toast.fail(res.msg || '重置失败');
+					toast.fail(res.msg || '重置失败');
 				}
 			}).catch(() => {
-				this.$toast.fail('重置失败，请稍后重试');
+				toast.fail('重置失败，请稍后重试');
 			});
-		},
-		getUserInfo() {
+		}
+function getUserInfo() {
 			userInfo().then(res => {
 				if (res.code == 200) {
 					const data = res.data || {}
@@ -168,18 +162,20 @@ export default {
 					}
 					window.localStorage.setItem('hasLogin', true);
 					window.localStorage.setItem('userInfo', JSON.stringify(user));
-					this.$toast.success('登录成功');
-					this.$router.push('/home')
+					toast.success('登录成功');
+					router.push('/home')
 				} else {
-					this.$toast.fail(res.msg || '获取用户信息失败');
+					toast.fail(res.msg || '获取用户信息失败');
 				}
 			}).catch((err) => {
 				console.error('getUserInfo error:', err);
-				this.$toast.fail('获取用户信息失败，请重试');
+				toast.fail('获取用户信息失败，请重试');
 			})
 		}
-	}
-}
+checkLogin()
+		if (route.query.account) {
+			account.value = route.query.account
+		}
 </script>
 
 <style scoped lang="scss">
@@ -258,7 +254,7 @@ export default {
 			display: none;
 		}
 
-		::v-deep .van-field__control {
+		:deep(.van-field__control) {
 			color: var(--text-primary);
 			font-size: 15px;
 			&::placeholder {
@@ -266,7 +262,7 @@ export default {
 			}
 		}
 
-		::v-deep .van-field__left-icon {
+		:deep(.van-field__left-icon) {
 			color: var(--text-tertiary);
 			margin-right: 8px;
 		}

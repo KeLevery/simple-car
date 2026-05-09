@@ -59,27 +59,27 @@
 		</div>
 
 		<!-- 2 -->
-		<van-popup v-model="showCity" position="bottom">
+		<van-popup v-model:show="showCity" position="bottom">
 			<van-area :area-list="areaList" :columns-num="2" @confirm="cityConfirm" @cancel="showCity=false"></van-area>
 		</van-popup>
 
 		<!-- 3 -->
-		<van-popup v-model="showStation" position="bottom">
+		<van-popup v-model:show="showStation" position="bottom">
 			<van-picker show-toolbar :columns="columns" @confirm="stationConfirm"
 				@cancel="showStation=false"></van-picker>
 		</van-popup>
 
 		<!-- 4 -->
-		<van-calendar v-model="showDate" :min-date="new Date()" @confirm="dateConfirm" />
+		<van-calendar v-model:show="showDate" :min-date="new Date()" @confirm="dateConfirm" />
 
 		<!-- 5 -->
-		<van-popup v-model="showTime" position="bottom">
+		<van-popup v-model:show="showTime" position="bottom">
 			<van-datetime-picker type="time" :min-hour="minHour" :min-minute="minMinutes" @confirm="timeConfirm"
 				@cancel="showTime=false" />
 		</van-popup>
 
 		<!-- 6 -->
-		<van-popup v-model="showCar" position="bottom">
+		<van-popup v-model:show="showCar" position="bottom">
 			<van-picker show-toolbar :columns="carList" @confirm="carConfirm" @cancel="showCar=false"></van-picker>
 		</van-popup>
 
@@ -117,248 +117,231 @@
 	</div>
 </template>
 
-<script>
-	import {
-		areaList
+<script setup>
+import {
+		areaList as areaData
 	} from '@vant/area-data';
-	import {
+import {
 		carInfoList,
 		stationList,
 		planRandomList,
 		appointmentAdd,
 		commonUpload
 	} from '@/api/service'
-	import SignBoard from '@/components/SignBoard.vue';
-	import {
+import SignBoard from '@/components/SignBoard.vue';
+import {
 		Col
 	} from 'vant';
-	export default {
-		components: {
-			SignBoard
-		},
-		data() {
-			return {
-				randomPlan: [],
-				totalAmount: 0,
-				imgSrc: '',
-				signImg: '',
-				mtType: "0",
-				showCity: false,
-				city: "",
-				areaList: areaList,
-				cityId: 0,
-				columns: [],
-				showStation: false,
-				station: "",
-				stationData: [],
-				stationId: 0,
-				contacts: "1",
-				fullName: '',
-				telephone: '',
-				showDate: false,
-				appointDate: '',
-				showTime: false,
-				appointTime: '',
-				licensetag: '',
-				showCar: false,
-				car: '',
-				carList: [],
-				carData: [],
-				carId: 0,
-				minHour: '',
-				pickCar: '1',
-				minMinutes: '',
-			};
-		},
-		created() {
-			this.getCarList();
-			this.getPlanList();
-		},
-		methods: {
-			goBack() {
-				this.$router.go(-1);
-			},
-			gotoHistory() {
-				this.$router.push({
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
+
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const randomPlan = ref([])
+const totalAmount = ref(0)
+const imgSrc = ref('')
+const signImg = ref('')
+const mtType = ref("0")
+const showCity = ref(false)
+const city = ref("")
+const areaList = areaData
+const cityId = ref(0)
+const columns = ref([])
+const showStation = ref(false)
+const station = ref("")
+const stationData = ref([])
+const stationId = ref(0)
+const contacts = ref("1")
+const fullName = ref('')
+const telephone = ref('')
+const showDate = ref(false)
+const appointDate = ref('')
+const showTime = ref(false)
+const appointTime = ref('')
+const licensetag = ref('')
+const showCar = ref(false)
+const car = ref('')
+const carList = ref([])
+const carData = ref([])
+const carId = ref(0)
+const minHour = ref('')
+const pickCar = ref('1')
+const minMinutes = ref('')
+function goBack() {
+				router.go(-1);
+			}
+function gotoHistory() {
+				router.push({
 					path: '/service/record'
 				});
-			},
-			onSubmit(values) {
+			}
+function onSubmit(values) {
 				console.log('submit', values);
-			},
-			typeChange(e) {
+			}
+function typeChange(e) {
 				console.log(e);
-				this.mtType = e;
-			},
-
-
-			cityConfirm(e) {
+				mtType.value = e;
+			}
+function cityConfirm(e) {
 				console.log(e);
-				this.city = e[1].name;
-				this.cityId = e[1].code;
-				this.showCity = false;
-				this.getStationList();
-			},
-			getStationList() {
-				this.station = "";
-				this.stationId = 0;
-				this.columns = [];
+				city.value = e[1].name;
+				cityId.value = e[1].code;
+				showCity.value = false;
+				getStationList();
+			}
+function getStationList() {
+				station.value = "";
+				stationId.value = 0;
+				columns.value = [];
 				stationList({
-					cityId: this.cityId
+					cityId: cityId.value
 				}).then(res => {
 					console.log(res);
-					this.stationData = res.rows;
+					stationData.value = res.rows;
 					let stations = []
 					res.rows.forEach(item => {
 						stations.push(item.serviceStationName);
 					})
-					this.columns = stations;
-					if (this.stationData.length === 0) {
-						this.$toast.fail('该城市暂无服务站，请选择其他城市');
-						this.city = '';
-						this.cityId = 0;
+					columns.value = stations;
+					if (stationData.value.length === 0) {
+						toast.fail('该城市暂无服务站，请选择其他城市');
+						city.value = '';
+						cityId.value = 0;
 					}
 				})
-			},
-
-			chooseStation() {
-				if (this.city.length > 0) {
-					if (this.stationData.length === 0) {
-						this.$toast.fail("没有服务站")
+			}
+function chooseStation() {
+				if (city.value.length > 0) {
+					if (stationData.value.length === 0) {
+						toast.fail("没有服务站")
 					} else {
-						this.showStation = true;
+						showStation.value = true;
 					}
 				} else {
-					this.$toast("请选择城市")
+					toast("请选择城市")
 				}
-			},
-			stationConfirm(e, index) {
+			}
+function stationConfirm(e, index) {
 				console.log(e);
-				this.station = e;
-				this.stationId = this.stationData[index].id;
-				this.showStation = false;
-			},
-
-			//日期的选择
-			dateConfirm(e) {
+				station.value = e;
+				stationId.value = stationData.value[index].id;
+				showStation.value = false;
+			}
+function dateConfirm(e) {
 				console.log(e);
-				this.appointDate = `${e.getFullYear()}-${e.getMonth()+1}-${e.getDate()}`;
-				this.showDate = false;
-			},
-			//时间的选择
-			chooseTime(e) {
-				if (this.appointDate == this.currentTime()) {
-					this.minHour = new Date().getHours();
-					this.minMinutes = new Date().getMinutes();
+				appointDate.value = `${e.getFullYear()}-${e.getMonth()+1}-${e.getDate()}`;
+				showDate.value = false;
+			}
+function chooseTime(e) {
+				if (appointDate.value == currentTime()) {
+					minHour.value = new Date().getHours();
+					minMinutes.value = new Date().getMinutes();
 				} else {
-					this.minHour = 0;
-					this.minMinutes = 0;
+					minHour.value = 0;
+					minMinutes.value = 0;
 				}
-				this.showTime = true;
-			},
-			currentTime() {
+				showTime.value = true;
+			}
+function currentTime() {
 				let acurrent = new Date();
 				let year = acurrent.getFullYear();
 				let month = acurrent.getMonth() + 1;
 				let date = acurrent.getDate();
 				let current = year + "-" + month + "-" + date;
 				return current;
-			},
-			timeConfirm(e) {
+			}
+function timeConfirm(e) {
 				console.log(e);
-				this.appointTime = e;
-				this.showTime = false;
-			},
-
-			getCarList() {
+				appointTime.value = e;
+				showTime.value = false;
+			}
+function getCarList() {
 				const userInfoStr = window.localStorage.getItem("userInfo");
 				if (!userInfoStr) {
-					this.$toast.fail('请先登录');
+					toast.fail('请先登录');
 					return;
 				}
 				let userId = JSON.parse(userInfoStr).userId;
 				carInfoList(userId).then(res => {
 					console.log(res);
-					this.carData = res.data;
+					carData.value = res.data;
 					let columns = [];
 					res.data.forEach(item => {
 						columns.push(item.car.carName + " " + item.car.carModels);
 					})
-					this.carList = columns;
+					carList.value = columns;
 				})
-			},
-			carConfirm(e, index) {
-				this.car = e;
+			}
+function carConfirm(e, index) {
+				car.value = e;
 				// 兼容 carID 和 carId 两种字段名
-				const picked = this.carData[index] || {};
-				this.carId = picked.carID || picked.carId || (picked.car && (picked.car.carId || picked.car.carID));
-				this.licensetag = picked.car ? picked.car.licenseTag : '';
-				this.showCar = false;
-			},
-
-
-			getPlanList() {
+				const picked = carData.value[index] || {};
+				carId.value = picked.carID || picked.carId || (picked.car && (picked.car.carId || picked.car.carID));
+				licensetag.value = picked.car ? picked.car.licenseTag : '';
+				showCar.value = false;
+			}
+function getPlanList() {
 				planRandomList().then(res => {
 					if (res.code == 200) {
 						let total = 0;
-						this.randomPlan = res.data;
+						randomPlan.value = res.data;
 						res.data.forEach(item => {
 							total += item.totalPrice
 						});
-						this.totalAmount = total;
+						totalAmount.value = total;
 					}
 				})
-			},
-
-			verifyPhone(val) {
+			}
+function verifyPhone(val) {
 				let pattern = /^(13[0-9]|14[01456879]|15[0-35-9]|16[2567]|17[0-8]|18[0-9]|19[0-35-9])\d{8}$/;
 				return pattern.test(val);
-			},
-
-			createOrder() {
-				if (this.mtType == 0) {
+			}
+function createOrder() {
+				if (mtType.value == 0) {
 					let formInfo = {
-						type: this.mtType, //类型
-						carId: this.carId, //车辆id
-						customerName: this.fullName, //联系人姓名
-						customerPhone: this.telephone, //联系人电话
-						appointDateStr: this.appointDate, //预约日期
-						appointTimeStr: this.appointTime, //预约时间
-						maintenanceServiceStationId: this.stationId //维保服务站id
+						type: mtType.value, //类型
+						carId: carId.value, //车辆id
+						customerName: fullName.value, //联系人姓名
+						customerPhone: telephone.value, //联系人电话
+						appointDateStr: appointDate.value, //预约日期
+						appointTimeStr: appointTime.value, //预约时间
+						maintenanceServiceStationId: stationId.value //维保服务站id
 					}
 
 					appointmentAdd(formInfo).then(res => {
 						if (res.code == 200) {
-							this.$notify({
+							notify({
 								type: 'success',
 								message: '提交成功！'
 							});
-							this.$router.push({
+							router.push({
 								path: '/pay?money=' + res.data.paymentAmount + '&payId=' + res.data.paymentId + '&workNo=' + res.data.workNo + '&orderId=' + res.data.id
 							})
 						}
 					})
-				} else if (this.mtType == 1) {
+				} else if (mtType.value == 1) {
 					let formInfo = {
-						type: this.mtType,
-						carId: this.carId,
-						customerName: this.fullName,
-						customerPhone: this.telephone,
-						appointDateStr: this.appointDate,
-						appointTimeStr: this.appointTime,
-						maintenanceServiceStationId: this.stationId,
-						planList: this.randomPlan,
-						customerSignature: this.signImg //客户签名
+						type: mtType.value,
+						carId: carId.value,
+						customerName: fullName.value,
+						customerPhone: telephone.value,
+						appointDateStr: appointDate.value,
+						appointTimeStr: appointTime.value,
+						maintenanceServiceStationId: stationId.value,
+						planList: randomPlan.value,
+						customerSignature: signImg.value //客户签名
 					}
 
-					if (this.signImg.length > 0) {
+					if (signImg.value.length > 0) {
 						appointmentAdd(formInfo).then(res => {
 							if (res.code == 200) {
-								this.$notify({
+								notify({
 									type: 'success',
 									message: '提交成功！'
 								});
-								this.$router.push({
+								router.push({
 									path: '/pay?money=' + res.data.paymentAmount + '&payId=' + res.data
 										.paymentId + '&workNo=' + res.data.workNo + '&orderId=' + res.data.id
 								})
@@ -366,18 +349,18 @@
 						})
 
 					} else {
-						this.$toast.fail('请确认签名！');
+						toast.fail('请确认签名！');
 					}
 				}
-			},
-			cvsCfm(data) {
+			}
+function cvsCfm(data) {
 				// canvas图像转图片
-				this.imgSrc = data.canvas.toDataURL("image/png");
+				imgSrc.value = data.canvas.toDataURL("image/png");
 
-				if (this.imgSrc) {
+				if (imgSrc.value) {
 					//图片解码
-					const byteString = window.atob(this.imgSrc.split(',')[1]);
-					const mimeString = this.imgSrc.split(',')[0].split(':')[1].split(';')[0];
+					const byteString = window.atob(imgSrc.value.split(',')[1]);
+					const mimeString = imgSrc.value.split(',')[0].split(':')[1].split(';')[0];
 					const ab = new ArrayBuffer(byteString.length);
 					const ia = new Uint8Array(ab);
 					for (let i = 0; i < byteString.length; i++) {
@@ -390,22 +373,21 @@
 					formData.append('file', blob, `sign${new Date().getTime()}.png`)
 					commonUpload(formData).then(res => {
 						if (res.code == 200) {
-							this.signImg = res.fileName;
-							this.$notify({
+							signImg.value = res.fileName;
+							notify({
 								type: 'success',
 								message: '签名已上传！'
 							});
 						} else {
-							this.imgSrc = '';
-							this.signImg = '';
-							this.$toast.fail('签名失败，请重试！');
+							imgSrc.value = '';
+							signImg.value = '';
+							toast.fail('签名失败，请重试！');
 						}
 					})
 				}
 			}
-
-		}
-	};
+getCarList();
+			getPlanList();
 </script>
 
 <style lang="scss" scoped>

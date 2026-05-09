@@ -42,26 +42,21 @@
 	</van-tabbar>
 </template>
 
-<script>
-export default {
-	name: 'Tabbar',
-	props: {
+<script setup>
+import { ref, toRefs, watch } from 'vue'
+
+defineOptions({ name: 'Tabbar' })
+const props = defineProps({
 		active: {
 			type: String,
 			default: '/home'
 		}
-	},
-	data() {
-		return {
-			activePath: this.active
-		}
-	},
-	watch: {
-		active(val) {
-			this.activePath = val;
-		}
-	}
-}
+	})
+const { active } = toRefs(props)
+const activePath = ref(active.value)
+watch(active, (val) => {
+			activePath.value = val;
+		})
 </script>
 
 <style lang="scss" scoped>
@@ -76,7 +71,7 @@ export default {
 	z-index: 100;
 	padding-bottom: env(safe-area-inset-bottom, 0);
 
-	::v-deep .van-tabbar-item {
+	:deep(.van-tabbar-item) {
 		background-color: transparent;
 		color: var(--text-tertiary);
 		transition: color 0.25s ease;
@@ -91,14 +86,14 @@ export default {
 			font-weight: 400;
 			transition: color 0.25s ease;
 		}
+	}
 
-		&--active {
-			color: var(--accent) !important;
+	:deep(.van-tabbar-item--active) {
+		color: var(--accent) !important;
 
-			.tab-label {
-				color: var(--accent);
-				font-weight: 500;
-			}
+		.tab-label {
+			color: var(--accent);
+			font-weight: 500;
 		}
 	}
 }
@@ -112,7 +107,7 @@ export default {
 
 .home-tab-item {
 	overflow: visible;
-	::v-deep .van-tabbar-item__icon {
+	:deep(.van-tabbar-item__icon) {
 		overflow: visible;
 	}
 }
@@ -140,7 +135,7 @@ export default {
 	}
 }
 
-::v-deep .van-tabbar-placeholder {
+:deep(.van-tabbar-placeholder) {
 	height: 56px !important;
 }
 </style>

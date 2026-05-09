@@ -28,7 +28,7 @@
 			</div>
 
 			<!-- 社区分类 -->
-			<van-tabs v-model="activeTab" sticky offset-top="0" color="var(--accent)" line-width="20" background="transparent" class="comm-tabs">
+			<van-tabs v-model:active="activeTab" sticky offset-top="0" color="var(--accent)" line-width="20" background="transparent" class="comm-tabs">
 				<van-tab title="精选">
 					<div class="feed-list">
 						<div v-for="(post, index) in feeds" :key="index" class="post-card">
@@ -74,7 +74,7 @@
 			</van-tabs>
 
 			<!-- 发布弹窗 -->
-			<van-popup v-model="showPublish" position="bottom" round class="sci-popup">
+			<van-popup v-model:show="showPublish" position="bottom" round class="sci-popup">
 				<div class="publish-popup">
 					<div class="publish-title">发布动态</div>
 					<van-field v-model="publishContent" rows="4" autosize type="textarea" placeholder="分享你的用车体验..." class="publish-textarea" />
@@ -90,7 +90,7 @@
 			</div>
 
 			<!-- 评论/详情弹窗 -->
-			<van-popup v-model="showComments" position="bottom" round class="comment-popup" :style="{ maxHeight: '85%' }" safe-area-inset-bottom>
+			<van-popup v-model:show="showComments" position="bottom" round class="comment-popup" :style="{ maxHeight: '85%' }" safe-area-inset-bottom>
 				<div class="comment-sheet">
 					<div class="comment-sheet__header">
 						<div class="comment-sheet__title">详情</div>
@@ -147,43 +147,34 @@
 		</div>
 	</template>
 
-	<script>
-	import Tabbar from "@/components/Tabbar.vue"
-	import { postList, toggleLike, createPost, commentList, createComment } from '@/api/community'
+	<script setup>
+import Tabbar from "@/components/Tabbar.vue"
+import { postList, toggleLike as toggleLikeApi, createPost, commentList, createComment } from '@/api/community'
+import { ref } from 'vue'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-	export default {
-		components: { Tabbar },
-		data() {
-			return {
-				activeTab: 0,
-				banners: [
+const { toast, notify, dialog } = useVantCompat()
+const activeTab = ref(0)
+const banners = ref([
 					{ title: '极氪001续航大测评，邀你来挑战', tag: '续航挑战赛', color: 'linear-gradient(135deg, #eef2ff, #dbeafe)', icon: 'fire-o' },
 					{ title: '春日出游计划：分享你的自驾路线', tag: '春日自驾', color: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', icon: 'flower-o' },
 					{ title: 'OTA升级体验报告：新功能好用吗？', tag: '系统升级', color: 'linear-gradient(135deg, #fff7ed, #ffedd5)', icon: 'upgrade' }
-				],
-				feeds: [],
-				showPublish: false,
-				publishContent: '',
-				publishing: false,
-
-				// comments
-				showComments: false,
-				activePost: null,
-				comments: [],
-				commentsLoading: false,
-				commentDraft: '',
-				commentSubmitting: false,
-				defaultAvatar: 'https://img01.yzcdn.cn/vant/cat.jpeg'
-			}
-		},
-		created() {
-			this.fetchPosts();
-		},
-		methods: {
-			async fetchPosts() {
+				])
+const feeds = ref([])
+const showPublish = ref(false)
+const publishContent = ref('')
+const publishing = ref(false)
+const showComments = ref(false)
+const activePost = ref(null)
+const comments = ref([])
+const commentsLoading = ref(false)
+const commentDraft = ref('')
+const commentSubmitting = ref(false)
+const defaultAvatar = ref('https://img01.yzcdn.cn/vant/cat.jpeg')
+async function fetchPosts() {
 				const res = await postList();
 				if (res.code === 200) {
-					this.feeds = (res.data || []).map(item => ({
+					feeds.value = (res.data || []).map(item => ({
 						...item,
 						images: item.images ? item.images.split(',') : [],
 						avatar: item.avatar || 'https://img01.yzcdn.cn/vant/cat.jpeg',
@@ -193,84 +184,83 @@
 						like: item.likeCount
 					}));
 				}
-			},
-			async toggleLike(post) {
-				const res = await toggleLike(post.id);
+			}
+async function toggleLike(post) {
+				const res = await toggleLikeApi(post.id);
 				if (res.code === 200) {
 					post.isLiked = !post.isLiked;
 					post.isLiked ? post.like++ : post.like--;
 				}
-			},
-			async publishPost() {
-				if (!this.publishContent.trim()) {
-					this.$toast('请输入内容');
+			}
+async function publishPost() {
+				if (!publishContent.value.trim()) {
+					toast('请输入内容');
 					return;
 				}
-				this.publishing = true;
+				publishing.value = true;
 				try {
-					const res = await createPost({ content: this.publishContent });
+					const res = await createPost({ content: publishContent.value });
 					if (res.code === 200) {
-						this.$toast.success('发布成功');
-						this.showPublish = false;
-						this.publishContent = '';
-						this.fetchPosts();
+						toast.success('发布成功');
+						showPublish.value = false;
+						publishContent.value = '';
+						fetchPosts();
 					}
 				} catch (error) {
 					console.error(error);
 				} finally {
-					this.publishing = false;
+					publishing.value = false;
 				}
-			},
-			sharePost() {
-				this.$toast('分享功能开发中');
-			},
-			formatCommentTime(t) {
+			}
+function sharePost() {
+				toast('分享功能开发中');
+			}
+function formatCommentTime(t) {
 				if (!t) return '';
 				const s = String(t).replace('T', ' ');
 				return s.length >= 16 ? s.slice(0, 16) : s;
-			},
-			openPostDetail(post) {
-				this.openComments(post);
-			},
-			async openComments(post) {
-				this.activePost = post;
-				this.showComments = true;
-				this.commentsLoading = true;
-				this.comments = [];
+			}
+function openPostDetail(post) {
+				openComments(post);
+			}
+async function openComments(post) {
+				activePost.value = post;
+				showComments.value = true;
+				commentsLoading.value = true;
+				comments.value = [];
 				try {
 					const res = await commentList(post.id);
 					if (res.code === 200) {
-						this.comments = res.data || [];
+						comments.value = res.data || [];
 					}
 				} finally {
-					this.commentsLoading = false;
+					commentsLoading.value = false;
 				}
-			},
-			async submitComment() {
-				if (!this.activePost) return;
-				const content = (this.commentDraft || '').trim();
+			}
+async function submitComment() {
+				if (!activePost.value) return;
+				const content = (commentDraft.value || '').trim();
 				if (!content) {
-					this.$toast('请输入评论内容');
+					toast('请输入评论内容');
 					return;
 				}
-				this.commentSubmitting = true;
+				commentSubmitting.value = true;
 				try {
-					const res = await createComment(this.activePost.id, { content });
+					const res = await createComment(activePost.value.id, { content });
 					if (res.code === 200) {
-						this.commentDraft = '';
-						this.$toast.success('评论成功');
-						await this.openComments(this.activePost);
-						if (typeof this.activePost.comment === 'number') {
-							this.activePost.comment++;
+						commentDraft.value = '';
+						toast.success('评论成功');
+						await openComments(activePost.value);
+						if (typeof activePost.value.comment === 'number') {
+							activePost.value.comment++;
 						}
 					}
 				} finally {
-					this.commentSubmitting = false;
+					commentSubmitting.value = false;
 				}
 			}
-		}
-	}
-	</script>
+fetchPosts();
+</script>
 
 	<style lang="scss" scoped>
 	.community-container {
@@ -334,11 +324,11 @@
 		z-index: 5;
 	}
 
-	::v-deep .van-tabs__nav {
+	:deep(.van-tabs__nav) {
 		background-color: transparent !important;
 	}
 
-	::v-deep .van-tab {
+	:deep(.van-tab) {
 		color: var(--text-secondary);
 		font-weight: 400;
 		&.van-tab--active {
@@ -347,7 +337,7 @@
 		}
 	}
 
-	::v-deep .van-tabs__line {
+	:deep(.van-tabs__line) {
 		background: var(--accent) !important;
 		height: 3px !important;
 		border-radius: 3px;
@@ -524,7 +514,7 @@
 			margin-bottom: 20px;
 			padding: 12px;
 
-			::v-deep .van-field__control {
+			:deep(.van-field__control) {
 				color: var(--text-primary);
 				font-size: 15px;
 				&::placeholder {
@@ -570,11 +560,11 @@
 	}
 
 	/* Vant overrides */
-	::v-deep .van-empty__description {
+	:deep(.van-empty__description) {
 		color: var(--text-tertiary) !important;
 	}
 
-	::v-deep .van-swipe__indicator {
+	:deep(.van-swipe__indicator) {
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;

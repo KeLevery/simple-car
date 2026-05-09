@@ -34,29 +34,26 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { getUserSettings, updateUserSettings } from '@/api/user'
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-export default {
-	data() {
-		return {
-			loading: false,
-			settings: {
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const loading = ref(false)
+const settings = ref({
 				showMoments: true,
 				showCarInfo: false,
 				personalized: true
-			}
-		}
-	},
-	created() {
-		this.loadSettings();
-	},
-	methods: {
-		async loadSettings() {
+			})
+async function loadSettings() {
 			try {
 				const res = await getUserSettings('privacy')
 				if (res.code === 200 && res.data && Object.keys(res.data).length > 0) {
-					this.settings = {
+					settings.value = {
 						showMoments: res.data.showMoments === 'true',
 						showCarInfo: res.data.showCarInfo === 'true',
 						personalized: res.data.personalized === 'true'
@@ -69,43 +66,42 @@ export default {
 
 			const saved = localStorage.getItem('privacy_settings')
 			if (saved) {
-				try { this.settings = JSON.parse(saved) } catch (err) {}
-			}
-		},
-		async saveSettings() {
-			this.loading = true
-			this.$toast.loading({ message: '保存中...', forbidClick: true })
-			try {
-				const data = {
-					showMoments: String(this.settings.showMoments),
-					showCarInfo: String(this.settings.showCarInfo),
-					personalized: String(this.settings.personalized)
-				}
-				const res = await updateUserSettings('privacy', data)
-				this.$toast.clear()
-				if (res.code === 200) {
-					localStorage.setItem('privacy_settings', JSON.stringify(this.settings))
-					this.$toast.success('保存成功')
-					setTimeout(() => {
-						this.$router.back()
-					}, 700)
-				} else {
-					this.$toast(res.msg || '保存失败')
-				}
-			} catch (e) {
-				this.$toast.clear()
-				console.error(e)
-				localStorage.setItem('privacy_settings', JSON.stringify(this.settings))
-				this.$toast.success('保存成功')
-				setTimeout(() => {
-					this.$router.back()
-				}, 700)
-			} finally {
-				this.loading = false
+				try { settings.value = JSON.parse(saved) } catch (err) {}
 			}
 		}
-	}
-}
+async function saveSettings() {
+			loading.value = true
+			toast.loading({ message: '保存中...', forbidClick: true })
+			try {
+				const data = {
+					showMoments: String(settings.value.showMoments),
+					showCarInfo: String(settings.value.showCarInfo),
+					personalized: String(settings.value.personalized)
+				}
+				const res = await updateUserSettings('privacy', data)
+				toast.clear()
+				if (res.code === 200) {
+					localStorage.setItem('privacy_settings', JSON.stringify(settings.value))
+					toast.success('保存成功')
+					setTimeout(() => {
+						router.back()
+					}, 700)
+				} else {
+					toast(res.msg || '保存失败')
+				}
+			} catch (e) {
+				toast.clear()
+				console.error(e)
+				localStorage.setItem('privacy_settings', JSON.stringify(settings.value))
+				toast.success('保存成功')
+				setTimeout(() => {
+					router.back()
+				}, 700)
+			} finally {
+				loading.value = false
+			}
+		}
+loadSettings();
 </script>
 
 <style scoped>

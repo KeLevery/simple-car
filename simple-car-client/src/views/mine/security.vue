@@ -47,60 +47,58 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { changePassword } from '@/api/user'
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-export default {
-  name: 'SecuritySettings',
-  data() {
-    return {
-      passwordForm: {
+defineOptions({ name: 'SecuritySettings' })
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const passwordForm = ref({
         oldPassword: '',
         newPassword: '',
         confirmPassword: ''
-      },
-      loading: false
-    }
-  },
-  methods: {
-    async handleSave() {
-      const { oldPassword, newPassword, confirmPassword } = this.passwordForm
+      })
+const loading = ref(false)
+async function handleSave() {
+      const { oldPassword, newPassword, confirmPassword } = passwordForm.value
       
       if (!oldPassword) {
-        this.$toast('请输入旧密码')
+        toast('请输入旧密码')
         return
       }
       if (!newPassword) {
-        this.$toast('请输入新密码')
+        toast('请输入新密码')
         return
       }
       if (newPassword !== confirmPassword) {
-        this.$toast('两次输入的新密码不一致')
+        toast('两次输入的新密码不一致')
         return
       }
       
-      this.loading = true
+      loading.value = true
       try {
         const res = await changePassword({
           oldPassword,
           newPassword
         })
         if (res.code === 200) {
-          this.$toast.success('密码修改成功')
+          toast.success('密码修改成功')
           setTimeout(() => {
-            this.$router.back()
+            router.back()
           }, 1000)
         } else {
-          this.$toast.fail(res.msg || '修改失败')
+          toast.fail(res.msg || '修改失败')
         }
       } catch (error) {
         console.error(error)
       } finally {
-        this.loading = false
+        loading.value = false
       }
     }
-  }
-}
 </script>
 
 <style lang="scss" scoped>

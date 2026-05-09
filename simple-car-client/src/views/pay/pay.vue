@@ -6,8 +6,7 @@
             placeholder
         />
 		
-        <van-popup
-            v-model="show"
+        <van-popup v-model:show="show"
             closeable
             :close-on-click-overlay="false"
             @click-close-icon="noPay"
@@ -32,7 +31,7 @@
         </van-popup>
 
         <van-dialog 
-            v-model="dialogShow" 
+            v-model:show="dialogShow"
             cancelButtonText="继续支付" 
             confirmButtonText="放弃" 
             @confirm="giveUp"
@@ -43,52 +42,49 @@
 	</div>
 </template>
 
-<script>
+<script setup>
 import { paymentUpdate } from '@/api/payment'
-export default {
-    data() {
-        return {
-            show: true,
-            price: 1189,
-            radio: '1',
-            dialogShow: false,
-            historyArr: [],
-            orderId: 0,
-            payId: 0
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
+
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const show = ref(true)
+const price = ref(1189)
+const radio = ref('1')
+const dialogShow = ref(false)
+const historyArr = ref([])
+const orderId = ref(0)
+const payId = ref(0)
+function goBack() {
+            router.go(-1);
         }
-    },
-    created() {
-        this.payId = parseInt(this.$route.query.payId)
-        this.orderId = parseInt(this.$route.query.orderId)
-        this.price = parseFloat(this.$route.query.money)
-    },
-    methods: {
-        goBack() {
-            this.$router.go(-1);
-        },
-        payCmf() {
+function payCmf() {
             paymentUpdate({
-                id: this.payId,
-                price: this.price,
-                maintenanceAppointmentId: this.orderId,
+                id: payId.value,
+                price: price.value,
+                maintenanceAppointmentId: orderId.value,
                 status: 1
             }).then(res => {
                 if(res.code == 200) {
-                    this.$notify({type: 'success',message: '支付成功！'});
-                    this.$router.push({path: '/home'})
+                    notify({type: 'success',message: '支付成功！'});
+                    router.push({path: '/home'})
                 } else {
-                    this.$toast.fail('支付失败，请重试！');
+                    toast.fail('支付失败，请重试！');
                 }
             })            
-        },
-        noPay() {
-            this.dialogShow = true;
-        },
-        giveUp() {
-            this.$router.push({path: '/home'})
         }
-    }
-}
+function noPay() {
+            dialogShow.value = true;
+        }
+function giveUp() {
+            router.push({path: '/home'})
+        }
+payId.value = parseInt(route.query.payId)
+        orderId.value = parseInt(route.query.orderId)
+        price.value = parseFloat(route.query.money)
 </script>
 
 <style lang="scss" scoped>

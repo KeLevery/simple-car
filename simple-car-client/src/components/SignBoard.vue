@@ -8,10 +8,12 @@
 	</div>
 </template>
 
-<script>
-export default {
-	name: 'signBoard',
-	props: {
+<script setup>
+import { onMounted, ref, toRefs } from 'vue'
+import { useVantCompat } from '@/composables/useVantCompat'
+
+defineOptions({ name: 'signBoard' })
+const props = defineProps({
 		height: {
 			type: String,
 			default: '200px'
@@ -20,64 +22,61 @@ export default {
 			type: String,
 			default: '300px'
 		}
-	},
-	data() {
-		return {
-			canvasRect: null, // 宽高clientRect数据
-			ctx: null,  // 画笔对象
-			startX: 0,
-			startY: 0,
-			endX: 0,
-			endY: 0,
-			isEmpty: true, // 画板是否为空
+	})
+const { height, width } = toRefs(props)
+const emit = defineEmits(["confirm"])
+const { toast, notify, dialog } = useVantCompat()
+const canvas = ref(null)
+const canvasRect = ref(null)
+const ctx = ref(null)
+const startX = ref(0)
+const startY = ref(0)
+const endX = ref(0)
+const endY = ref(0)
+const isEmpty = ref(true)
+function init() {
+			const canvasEl = canvas.value;
+			canvasRect.value = canvasEl.getBoundingClientRect();
+			ctx.value = canvasEl.getContext('2d')
 		}
-	},
-	mounted() {
-		this.init()
-	},
-	methods: {
-		init () {
-			const canvas = this.$refs.canvas;
-			this.canvasRect = canvas.getBoundingClientRect();
-			this.ctx = canvas.getContext('2d')
-		},
-		handleTouchStart(e) {
+function handleTouchStart(e) {
 			e.preventDefault();
-			this.canvasRect = this.$refs.canvas.getBoundingClientRect();
-			this.startX = e.targetTouches[0].clientX - this.canvasRect.left;
-			this.startY = e.targetTouches[0].clientY - this.canvasRect.top;
-		},
-		handleTouchMove(e) {
+			canvasRect.value = canvas.value.getBoundingClientRect();
+			startX.value = e.targetTouches[0].clientX - canvasRect.value.left;
+			startY.value = e.targetTouches[0].clientY - canvasRect.value.top;
+		}
+function handleTouchMove(e) {
 			e.preventDefault();
-			this.endX = e.targetTouches[0].clientX - this.canvasRect.left;
-			this.endY = e.targetTouches[0].clientY - this.canvasRect.top;
-			this.draw()
-			this.startX = this.endX;
-			this.startY = this.endY;
-		},
-		draw () {
-			this.ctx.beginPath();
-			this.ctx.moveTo(this.startX, this.startY);
-			this.ctx.lineTo(this.endX, this.endY);
-			this.ctx.lineCap = 'round';
-			this.ctx.lineJoin = 'round';
-			this.ctx.stroke();
-			this.ctx.closePath();
+			endX.value = e.targetTouches[0].clientX - canvasRect.value.left;
+			endY.value = e.targetTouches[0].clientY - canvasRect.value.top;
+			draw()
+			startX.value = endX.value;
+			startY.value = endY.value;
+		}
+function draw() {
+			ctx.value.beginPath();
+			ctx.value.moveTo(startX.value, startY.value);
+			ctx.value.lineTo(endX.value, endY.value);
+			ctx.value.lineCap = 'round';
+			ctx.value.lineJoin = 'round';
+			ctx.value.stroke();
+			ctx.value.closePath();
 
-			this.isEmpty = false;
-		},
-		handleClear() {
-			this.ctx.clearRect(0, 0, this.canvasRect.width, this.canvasRect.height);
-			this.isEmpty = true;
-		},
-		handleConfirm() {
-			if(this.isEmpty) {
-				this.$toast.fail('请签名确认！');
+			isEmpty.value = false;
+		}
+function handleClear() {
+			ctx.value.clearRect(0, 0, canvasRect.value.width, canvasRect.value.height);
+			isEmpty.value = true;
+		}
+function handleConfirm() {
+			if(isEmpty.value) {
+				toast.fail('请签名确认！');
 				return
 			}
-			this.$emit('confirm', {canvas: this.$refs.canvas})
+			emit('confirm', {canvas: canvas.value})
 		}
-	}
-}
+onMounted(() => {
+		init()
+	})
 </script>
 

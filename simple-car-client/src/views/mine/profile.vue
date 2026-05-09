@@ -38,59 +38,55 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { updateProfile } from '@/api/user'
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useVantCompat } from '@/composables/useVantCompat'
 
-export default {
-  name: 'ProfileEdit',
-  data() {
-    return {
-      userForm: {
+defineOptions({ name: 'ProfileEdit' })
+const router = useRouter()
+const route = useRoute()
+const { toast, notify, dialog } = useVantCompat()
+const userForm = ref({
         nickName: '',
         phone: ''
-      },
-      loading: false
-    }
-  },
-  created() {
-    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
-    if (userInfo) {
-      this.userForm.nickName = userInfo.nickName || ''
-      this.userForm.phone = userInfo.phone || ''
-    }
-  },
-  methods: {
-    async handleSave() {
-      if (!this.userForm.nickName.trim()) {
-        this.$toast('昵称不能为空')
+      })
+const loading = ref(false)
+async function handleSave() {
+      if (!userForm.value.nickName.trim()) {
+        toast('昵称不能为空')
         return
       }
       
-      this.loading = true
+      loading.value = true
       try {
-        const res = await updateProfile(this.userForm)
+        const res = await updateProfile(userForm.value)
         if (res.code === 200) {
-          this.$toast.success('更新成功')
+          toast.success('更新成功')
           // 更新本地存储
           const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
-          userInfo.nickName = this.userForm.nickName
-          userInfo.phone = this.userForm.phone
+          userInfo.nickName = userForm.value.nickName
+          userInfo.phone = userForm.value.phone
           localStorage.setItem('userInfo', JSON.stringify(userInfo))
           
           setTimeout(() => {
-            this.$router.back()
+            router.back()
           }, 1000)
         } else {
-          this.$toast.fail(res.msg || '更新失败')
+          toast.fail(res.msg || '更新失败')
         }
       } catch (error) {
         console.error(error)
       } finally {
-        this.loading = false
+        loading.value = false
       }
     }
-  }
-}
+const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+    if (userInfo) {
+      userForm.value.nickName = userInfo.nickName || ''
+      userForm.value.phone = userInfo.phone || ''
+    }
 </script>
 
 <style lang="scss" scoped>
