@@ -153,38 +153,14 @@ public class AuthServiceImpl implements AuthService {
         userMapper.insert(user);
     }
 
-    public void forgotPassword(String username, String newPassword) {
-        String account = username == null ? "" : username.trim();
-        String pwd = newPassword == null ? "" : newPassword.trim();
-        if (account.isEmpty() || pwd.isEmpty()) {
-            throw new RuntimeException("账号和新密码不能为空");
-        }
-        if (pwd.length() < 6) {
-            throw new RuntimeException("新密码长度不能少于 6 位");
-        }
-
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, account));
-        if (user == null) {
-            throw new RuntimeException("用户不存在");
-        }
-
-        user.setPassword(passwordEncoder.encode(pwd));
-        user.setUpdatedAt(LocalDateTime.now());
-        userMapper.updateById(user);
-    }
-
     private boolean matchesPassword(String rawPassword, String storedPassword) {
         if (rawPassword == null || storedPassword == null) {
             return false;
         }
         try {
-            if (passwordEncoder.matches(rawPassword, storedPassword)) {
-                return true;
-            }
+            return passwordEncoder.matches(rawPassword, storedPassword);
         } catch (IllegalArgumentException ignored) {
-            // Legacy rows without a Spring Security password id are compared below.
+            return false;
         }
-        String plainStored = storedPassword.startsWith("{noop}") ? storedPassword.substring(6) : storedPassword;
-        return plainStored.equals(rawPassword);
     }
 }

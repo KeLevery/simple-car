@@ -34,7 +34,21 @@ http.interceptors.response.use(
     }
     return response
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    const status = error.response?.status
+    const result = error.response?.data as ApiResponse<unknown> | undefined
+    if (status === 401 || result?.code === 401) {
+      window.localStorage.removeItem('adminToken')
+      if (window.location.pathname !== '/login') {
+        window.location.assign('/login')
+      }
+      return Promise.reject(new Error(result?.msg || '登录已过期'))
+    }
+    if (status === 403 || result?.code === 403) {
+      return Promise.reject(new Error(result?.msg || '无后台访问权限'))
+    }
+    return Promise.reject(error)
+  }
 )
 
 export async function request<T>(url: string, options = {}) {

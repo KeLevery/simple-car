@@ -50,7 +50,7 @@ ON DUPLICATE KEY UPDATE
     `role_name` = VALUES(`role_name`);
 
 INSERT INTO `admin_user` (`id`, `username`, `password`, `display_name`, `status`)
-VALUES (1, 'admin', '{noop}123456', '系统管理员', 1)
+VALUES (1, 'admin', '{bcrypt}$2b$10$wcLZeUvgpf6vj4sw5eQ3nOd5Y13Rj8pZ7KNgy9c1DVMCuRapFdhMa', '系统管理员', 1)
 ON DUPLICATE KEY UPDATE
     `password` = VALUES(`password`),
     `display_name` = VALUES(`display_name`),

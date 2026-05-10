@@ -40,7 +40,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         if (adminUser.getStatus() == null || adminUser.getStatus() == 0) {
             throw new RuntimeException("后台账号已禁用");
         }
-        if (!passwordEncoder.matches(loginRequest.getPassword(), adminUser.getPassword())) {
+        if (!matchesPassword(loginRequest.getPassword(), adminUser.getPassword())) {
             throw new RuntimeException("后台账号或密码错误");
         }
 
@@ -100,5 +100,16 @@ public class AdminAuthServiceImpl implements AdminAuthService {
 
     private String normalizeRole(String roleCode) {
         return roleCode.startsWith("ROLE_") ? roleCode : "ROLE_" + roleCode;
+    }
+
+    private boolean matchesPassword(String rawPassword, String storedPassword) {
+        if (rawPassword == null || storedPassword == null) {
+            return false;
+        }
+        try {
+            return passwordEncoder.matches(rawPassword, storedPassword);
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
     }
 }

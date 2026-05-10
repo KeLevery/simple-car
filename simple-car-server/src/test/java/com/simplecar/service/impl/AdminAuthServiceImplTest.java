@@ -44,7 +44,7 @@ class AdminAuthServiceImplTest {
         AdminUser adminUser = new AdminUser();
         adminUser.setId(1L);
         adminUser.setUsername("admin");
-        adminUser.setPassword("{noop}123456");
+        adminUser.setPassword(passwordEncoder.encode("123456"));
         adminUser.setStatus(1);
         AdminUserRole relation = new AdminUserRole();
         relation.setRoleId(1L);
@@ -85,7 +85,7 @@ class AdminAuthServiceImplTest {
 
         AdminUser adminUser = new AdminUser();
         adminUser.setUsername("admin");
-        adminUser.setPassword("{noop}123456");
+        adminUser.setPassword(PasswordEncoderFactories.createDelegatingPasswordEncoder().encode("123456"));
         adminUser.setStatus(0);
         when(adminUserMapper.selectOne(any())).thenReturn(adminUser);
 
@@ -95,5 +95,33 @@ class AdminAuthServiceImplTest {
 
         RuntimeException error = assertThrows(RuntimeException.class, () -> service.login(request));
         assertEquals("后台账号已禁用", error.getMessage());
+    }
+
+    @Test
+    void loginRejectsPlainStoredPassword() {
+        AdminUserMapper adminUserMapper = mock(AdminUserMapper.class);
+        AdminRoleMapper adminRoleMapper = mock(AdminRoleMapper.class);
+        AdminUserRoleMapper adminUserRoleMapper = mock(AdminUserRoleMapper.class);
+        JwtUtils jwtUtils = mock(JwtUtils.class);
+        AdminAuthServiceImpl service = new AdminAuthServiceImpl(
+                adminUserMapper,
+                adminRoleMapper,
+                adminUserRoleMapper,
+                PasswordEncoderFactories.createDelegatingPasswordEncoder(),
+                jwtUtils
+        );
+
+        AdminUser adminUser = new AdminUser();
+        adminUser.setUsername("admin");
+        adminUser.setPassword("123456");
+        adminUser.setStatus(1);
+        when(adminUserMapper.selectOne(any())).thenReturn(adminUser);
+
+        LoginRequest request = new LoginRequest();
+        request.setUsername("admin");
+        request.setPassword("123456");
+
+        RuntimeException error = assertThrows(RuntimeException.class, () -> service.login(request));
+        assertEquals("后台账号或密码错误", error.getMessage());
     }
 }

@@ -83,6 +83,30 @@ service.interceptors.response.use(res => {
 },
   error => {
     console.log('err' + error)
+    const status = error.response && error.response.status
+    const data = error.response && error.response.data
+    if (status === 401 || (data && data.code === 401)) {
+      if (!(router.currentRoute && router.currentRoute.value.path === '/')) {
+        showConfirmDialog({
+          title: '系统提示',
+          message: (data && data.msg) || '登录状态已过期，请重新登录',
+          showCancelButton: false,
+          confirmButtonText: '确定'
+        }).then(() => {
+          window.localStorage.removeItem('token');
+          window.localStorage.removeItem('hasLogin');
+          window.localStorage.removeItem('userInfo');
+          window.localStorage.removeItem('carInfo');
+          window.localStorage.removeItem('carList');
+          router.push('/').catch(() => {})
+        }).catch(() => {});
+      }
+      return Promise.resolve(data || { code: 401, msg: '登录状态已过期' })
+    }
+    if (status === 403 || (data && data.code === 403)) {
+      showFailToast((data && data.msg) || '无访问权限');
+      return Promise.resolve(data || { code: 403, msg: '无访问权限' })
+    }
     let { message } = error;
     if (message == "Network Error") {
       message = "后端接口连接异常";

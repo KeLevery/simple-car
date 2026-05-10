@@ -47,17 +47,6 @@ public class AuthController {
         }
     }
 
-    @Operation(summary = "忘记密码")
-    @PostMapping("/forgot-password")
-    public ApiResponse<Void> forgotPassword(@RequestBody Map<String, String> params) {
-        try {
-            authService.forgotPassword(params.get("username"), params.get("newPassword"));
-            return ApiResponse.success("重置成功", null);
-        } catch (Exception e) {
-            return ApiResponse.error(e.getMessage() != null ? e.getMessage() : "重置失败");
-        }
-    }
-
     @Operation(summary = "获取用户信息")
     @GetMapping("/getInfo")
     public ApiResponse<Map<String, Object>> getInfo(HttpServletRequest request) {

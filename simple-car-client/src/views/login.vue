@@ -60,8 +60,7 @@
 <script setup>
 import {
 	userLogin,
-	userInfo,
-	forgotPassword as resetPassword
+	userInfo
 } from '@/api/user'
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -110,43 +109,10 @@ function onRegister() {
 			router.push('/register')
 		}
 function onForgotPassword() {
-			const usernameInput = window.prompt('请输入账号手机号', account.value || '');
-			if (usernameInput === null) {
-				return;
-			}
-			const username = usernameInput.trim();
-			if (!/^1\d{10}$/.test(username)) {
-				toast.fail('请输入11位手机号');
-				return;
-			}
-
-			const newPasswordInput = window.prompt('请输入新密码（至少6位）');
-			if (newPasswordInput === null) {
-				return;
-			}
-			const newPassword = newPasswordInput.trim();
-			if (newPassword.length < 6) {
-				toast.fail('新密码长度不能少于6位');
-				return;
-			}
-
-			toast.loading({
-				message: '重置中...',
-				forbidClick: true,
-			});
-			resetPassword({
-				username,
-				newPassword
-			}).then(res => {
-				if (res.code == 200) {
-					account.value = username;
-					password.value = '';
-					toast.success('密码已重置，请重新登录');
-				} else {
-					toast.fail(res.msg || '重置失败');
-				}
-			}).catch(() => {
-				toast.fail('重置失败，请稍后重试');
+			dialog.alert({
+				title: '无法在线重置',
+				message: '为保护账号安全，请联系管理员重置密码；已登录用户可在“我的-账号安全”中修改密码。',
+				confirmButtonText: '知道了'
 			});
 		}
 function getUserInfo() {

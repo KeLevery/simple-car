@@ -18,15 +18,6 @@ export function userRegister(data) {
     })
 }
 
-// 忘记密码
-export function forgotPassword(data) {
-    return request({
-      url: '/forgot-password',
-      method: 'post',
-      data: data
-    })
-}
-
 // 查询用户信息
 export function userInfo() {
     return request({
