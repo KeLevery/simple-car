@@ -39,7 +39,7 @@ class JwtAuthenticationTokenFilterTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         FilterChain chain = mock(FilterChain.class);
         UserDetails adminDetails = User.withUsername("admin")
-                .password("{noop}123456")
+                .password("{bcrypt}$2b$10$wcLZeUvgpf6vj4sw5eQ3nOd5Y13Rj8pZ7KNgy9c1DVMCuRapFdhMa")
                 .authorities("ROLE_ADMIN")
                 .build();
 

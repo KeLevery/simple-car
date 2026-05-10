@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -61,12 +62,13 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) ->
-                                writeSecurityError(response, "未登录或登录已过期"))
+                                writeSecurityError(response, HttpStatus.UNAUTHORIZED.value(), "未登录或登录已过期"))
                         .accessDeniedHandler((request, response, accessDeniedException) ->
-                                writeSecurityError(response, "无后台访问权限"))
+                                writeSecurityError(response, HttpStatus.FORBIDDEN.value(), "无后台访问权限"))
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/register", "/forgot-password", "/admin/auth/login", "/upload/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/login", "/register", "/admin/auth/login", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/uploads/**", "/profile/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/community/post/list", "/community/post/{postId}/comments").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -105,9 +107,9 @@ public class SecurityConfig {
         return source;
     }
 
-    private void writeSecurityError(HttpServletResponse response, String message) throws java.io.IOException {
+    private void writeSecurityError(HttpServletResponse response, int status, String message) throws java.io.IOException {
         response.setContentType("application/json;charset=UTF-8");
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.getWriter().write(new ObjectMapper().writeValueAsString(ApiResponse.error(401, message)));
+        response.setStatus(status);
+        response.getWriter().write(new ObjectMapper().writeValueAsString(ApiResponse.error(status, message)));
     }
 }

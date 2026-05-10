@@ -10,6 +10,4 @@ public interface AuthService {
     Map<String, Object> getUserInfo(String username);
 
     void register(String username, String password, String nickName, String phone);
-
-    void forgotPassword(String username, String newPassword);
 }

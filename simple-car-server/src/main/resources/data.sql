@@ -3,8 +3,8 @@ USE simple_car;
 -- 1. Users (password is 123456)
 INSERT INTO `user` (`id`, `username`, `password`, `nick_name`, `phone`, `status`)
 VALUES
-    (1, '13800000000', '{noop}123456', '张三 (测试车主)', '13800000000', 1),
-    (2, '13912345678', '{noop}123456', '李四', '13912345678', 1)
+    (1, '13800000000', '{bcrypt}$2b$10$wcLZeUvgpf6vj4sw5eQ3nOd5Y13Rj8pZ7KNgy9c1DVMCuRapFdhMa', '张三 (测试车主)', '13800000000', 1),
+    (2, '13912345678', '{bcrypt}$2b$10$wcLZeUvgpf6vj4sw5eQ3nOd5Y13Rj8pZ7KNgy9c1DVMCuRapFdhMa', '李四', '13912345678', 1)
 ON DUPLICATE KEY UPDATE
     `username` = VALUES(`username`),
     `password` = VALUES(`password`),

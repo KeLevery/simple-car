@@ -82,13 +82,9 @@ public class UserServiceImpl implements UserService {
             return false;
         }
         try {
-            if (passwordEncoder.matches(rawPassword, storedPassword)) {
-                return true;
-            }
+            return passwordEncoder.matches(rawPassword, storedPassword);
         } catch (IllegalArgumentException ignored) {
-            // Legacy rows without a Spring Security password id are compared below.
+            return false;
         }
-        String plainStored = storedPassword.startsWith("{noop}") ? storedPassword.substring(6) : storedPassword;
-        return plainStored.equals(rawPassword);
     }
 }
