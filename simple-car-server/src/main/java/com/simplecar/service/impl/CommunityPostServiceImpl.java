@@ -36,7 +36,6 @@ public class CommunityPostServiceImpl implements CommunityPostService {
                .eq(CommunityPostLike::getUserId, userId);
 
         CommunityPostLike existing = likeMapper.selectOne(wrapper);
-        CommunityPost post = postMapper.selectById(postId);
 
         if (existing == null) {
             CommunityPostLike like = new CommunityPostLike();
@@ -44,17 +43,10 @@ public class CommunityPostServiceImpl implements CommunityPostService {
             like.setUserId(userId);
             like.setCreateTime(LocalDateTime.now());
             likeMapper.insert(like);
-
-            if (post != null) {
-                post.setLikeCount(post.getLikeCount() + 1);
-                postMapper.updateById(post);
-            }
+            postMapper.incrementLikeCount(postId);
         } else {
             likeMapper.deleteById(existing.getId());
-            if (post != null && post.getLikeCount() > 0) {
-                post.setLikeCount(post.getLikeCount() - 1);
-                postMapper.updateById(post);
-            }
+            postMapper.decrementLikeCount(postId);
         }
     }
 

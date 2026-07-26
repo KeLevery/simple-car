@@ -2,7 +2,6 @@ package com.simplecar.service.impl;
 
 import com.simplecar.mapper.CommunityPostCommentMapper;
 import com.simplecar.mapper.CommunityPostMapper;
-import com.simplecar.model.entity.CommunityPost;
 import com.simplecar.model.entity.CommunityPostComment;
 import com.simplecar.service.CommunityPostCommentService;
 import lombok.RequiredArgsConstructor;
@@ -33,12 +32,7 @@ public class CommunityPostCommentServiceImpl implements CommunityPostCommentServ
         comment.setCreateTime(LocalDateTime.now());
         commentMapper.insert(comment);
 
-        CommunityPost post = postMapper.selectById(postId);
-        if (post != null) {
-            Integer current = post.getCommentCount() == null ? 0 : post.getCommentCount();
-            post.setCommentCount(current + 1);
-            postMapper.updateById(post);
-        }
+        postMapper.incrementCommentCount(postId);
 
         return comment;
     }
