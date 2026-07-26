@@ -1,7 +1,7 @@
 import request from '@/util/request'
 
 // 查询剩余电量、里程、温度
-export function carInfo(id) {
+export function carInfo(id: number | string) {
   return request({
     url: '/bs-vehicle-owner/carInfo/getByCarId/'+id,
     method: 'get'
@@ -9,7 +9,7 @@ export function carInfo(id) {
 }
 
 // 远程车辆控制
-export function doCarStart(data) {
+export function doCarStart(data: Record<string, unknown>) {
     return request({
       url: '/bs-vehicle-owner/rc/doCarStart',
       method: 'post',
@@ -18,7 +18,7 @@ export function doCarStart(data) {
 }
 
 // 分页查询空调状态列表
-export function fanState(query) {
+export function fanState(query: Record<string, unknown>) {
   return request({
     url: '/bs-vehicle-owner/bsAirConditioningStatus/page',
     method: 'get',
@@ -27,7 +27,7 @@ export function fanState(query) {
 }
 
 // 查询车辆状态（启动/关闭）carState(1:离线;2:关机;3:开机)
-export function CarState(id) {
+export function CarState(id: number | string) {
   return request({
     url: '/bs-smart-charger-biz/CarState/'+id,
     method: 'get'
@@ -35,7 +35,7 @@ export function CarState(id) {
 }
 
 // 查询实时充电数据
-export function homeChargingData(id) {
+export function homeChargingData(id: number | string) {
   return request({
     url: '/bs-home-charging-station/homeChargingOrders/queryRealTimeChargingData/'+id,
     method: 'get'
@@ -43,7 +43,7 @@ export function homeChargingData(id) {
 }
 
 // 查询家用充电桩列表
-export function homestationList(query) {
+export function homestationList(query: Record<string, unknown>) {
   return request({
     url: '/bs-home-charging-station/homestation/list',
     method: 'get',
@@ -52,7 +52,7 @@ export function homestationList(query) {
 }
 
 // 检查家用是否充电中
-export function homesChargeChecked(id) {
+export function homesChargeChecked(id: number | string) {
   return request({
     url: '/bs-home-charging-station/homeChargingOrders/checkIsCharged/'+id,
     method: 'get'
@@ -60,7 +60,7 @@ export function homesChargeChecked(id) {
 }
 
 // 检查车辆充电链接
-export function getHomeCheckLink(id) {
+export function getHomeCheckLink(id: number | string) {
   return request({
     url: '/bs-home-charging-station/homeChargingOrders/checkLink/'+id,
     method: 'get'

@@ -1,8 +1,25 @@
-import axios from 'axios'
+import axios, { type AxiosRequestConfig } from 'axios'
 import { showConfirmDialog, showFailToast } from 'vant'
 import errorCode from '@/util/errorCode'
 import { getBaseUrl } from '@/util/env'
+import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
+
+// 响应契约：拦截器返回整个 res.data，调用方拿到 {code, msg, data} 或分页的 {rows, total}
+export interface ApiResult<T = unknown> {
+  code: number
+  msg: string
+  data: T
+}
+
+export interface PageResult<T = unknown> extends ApiResult<null> {
+  rows: T[]
+  total: number
+}
+
+interface RequestFn {
+  <T = unknown>(config: AxiosRequestConfig): Promise<ApiResult<T>>
+}
 
 axios.defaults.headers['Content-Type'] = 'application/json;charset=utf-8'
 // 创建axios实例
@@ -13,18 +30,14 @@ const service = axios.create({
   timeout: 30000
 })
 
-// 清除登录态（供 request 拦截器与退出登录复用）
+// 清除登录态（供 request 拦截器与退出登录复用），已收编进 auth store
 export function clearAuth() {
-  window.localStorage.removeItem('token');
-  window.localStorage.removeItem('hasLogin');
-  window.localStorage.removeItem('userInfo');
-  window.localStorage.removeItem('carInfo');
-  window.localStorage.removeItem('carList');
+  useAuthStore().logout()
 }
 
 // 401 统一处理：提示后清除登录态并跳转登录页
 let unauthorizedDialogShowing = false
-function handleUnauthorized(message) {
+function handleUnauthorized(message?: string) {
   // 已在登录页则不弹窗（避免阻断登录流程）
   if (router.currentRoute && router.currentRoute.value.path === '/') {
     return
@@ -101,4 +114,5 @@ service.interceptors.response.use(res => {
   }
 )
 
-export default service
+// 拦截器已把 resolve 值改为 res.data，用可调用接口标注真实契约
+export default service as unknown as RequestFn

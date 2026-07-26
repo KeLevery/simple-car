@@ -1,7 +1,8 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import LoginView from '../views/login.vue'
 
-const routes = [
+const routes: RouteRecordRaw[] = [
 	{
 		path: '/',
 		name: 'login',
@@ -147,8 +148,7 @@ const router = createRouter({
 
 // 全局路由守卫
 router.beforeEach((to, from, next) => {
-	const hasLogin = window.localStorage.getItem('hasLogin')
-	const token = window.localStorage.getItem('token')
+	const auth = useAuthStore()
 
 	// 登录页和注册页直接放行
 	if (to.path === '/' || to.path === '/register') {
@@ -157,7 +157,7 @@ router.beforeEach((to, from, next) => {
 	}
 
 	// 其他页面需要登录
-	if (!hasLogin || !token) {
+	if (!auth.isLoggedIn) {
 		next('/')
 		return
 	}

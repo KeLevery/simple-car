@@ -1,6 +1,6 @@
 import request from '@/util/request'
 
-export function createRescue(data) {
+export function createRescue(data: Record<string, unknown>) {
   return request({
     url: '/rescue/create',
     method: 'post',

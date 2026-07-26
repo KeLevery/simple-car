@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import store from './store'
 import {
   ActionSheet,
   Area,
@@ -129,14 +129,22 @@ const vantComponents = [
 
 const app = createApp(App)
 
+app.use(createPinia())
 app.use(router)
-app.use(store)
 vantComponents.forEach(component => app.use(component))
 
 app.config.globalProperties.$toast = toast
 app.config.globalProperties.$notify = showNotify
 app.config.globalProperties.$dialog = {
   confirm: showConfirmDialog
+}
+
+declare module 'vue' {
+  interface ComponentCustomProperties {
+    $toast: typeof toast
+    $notify: typeof showNotify
+    $dialog: { confirm: typeof showConfirmDialog }
+  }
 }
 
 app.mount('#app')
