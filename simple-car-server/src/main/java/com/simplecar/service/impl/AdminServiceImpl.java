@@ -1,6 +1,7 @@
 package com.simplecar.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.simplecar.mapper.ChargingOrderMapper;
 import com.simplecar.mapper.ChargingStationMapper;
 import com.simplecar.mapper.CommunityPostMapper;
@@ -18,6 +19,7 @@ import com.simplecar.model.entity.ServiceStation;
 import com.simplecar.model.entity.User;
 import com.simplecar.model.entity.UserVehicle;
 import com.simplecar.model.entity.Vehicle;
+import com.simplecar.result.PagedData;
 import com.simplecar.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -67,7 +69,7 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<Map<String, Object>> listUsers(String keyword, Integer limit) {
+    public PagedData<Map<String, Object>> listUsers(String keyword, Integer pageNum, Integer pageSize) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>().orderByDesc(User::getCreatedAt);
         String text = keyword == null ? null : keyword.trim();
         if (text != null && !text.isEmpty()) {
@@ -81,10 +83,8 @@ public class AdminServiceImpl implements AdminService {
                 }
             });
         }
-        if (limit != null && limit > 0) {
-            wrapper.last("limit " + Math.min(limit, 50));
-        }
-        return userMapper.selectList(wrapper).stream().map(this::userView).toList();
+        Page<User> page = userMapper.selectPage(newPage(pageNum, pageSize), wrapper);
+        return new PagedData<>(page.getRecords().stream().map(this::userView).toList(), page.getTotal());
     }
 
     @Override
@@ -155,15 +155,16 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<Map<String, Object>> listVehicles(Long userId) {
+    public PagedData<Map<String, Object>> listVehicles(Long userId, Integer pageNum, Integer pageSize) {
         LambdaQueryWrapper<UserVehicle> wrapper = new LambdaQueryWrapper<UserVehicle>()
                 .orderByDesc(UserVehicle::getCreatedAt);
         if (userId != null) {
             wrapper.eq(UserVehicle::getUserId, userId);
         }
-        List<UserVehicle> relations = userVehicleMapper.selectList(wrapper);
+        Page<UserVehicle> page = userVehicleMapper.selectPage(newPage(pageNum, pageSize), wrapper);
+        List<UserVehicle> relations = page.getRecords();
         if (relations.isEmpty()) {
-            return List.of();
+            return new PagedData<>(List.of(), page.getTotal());
         }
 
         List<Long> carIds = relations.stream().map(UserVehicle::getCarId).distinct().toList();
@@ -173,7 +174,7 @@ public class AdminServiceImpl implements AdminService {
         Map<Long, User> userById = userMapper.selectBatchIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, user -> user));
 
-        return relations.stream()
+        List<Map<String, Object>> rows = relations.stream()
                 .map(relation -> vehicleView(
                         relation,
                         vehicleById.get(relation.getCarId()),
@@ -181,6 +182,7 @@ public class AdminServiceImpl implements AdminService {
                 ))
                 .filter(Objects::nonNull)
                 .toList();
+        return new PagedData<>(rows, page.getTotal());
     }
 
     @Override
@@ -247,10 +249,17 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<MaintenanceAppointment> listAppointments() {
-        return appointmentMapper.selectList(
-                new LambdaQueryWrapper<MaintenanceAppointment>().orderByDesc(MaintenanceAppointment::getCreatedAt)
-        );
+    public PagedData<MaintenanceAppointment> listAppointments(String keyword, Integer pageNum, Integer pageSize) {
+        LambdaQueryWrapper<MaintenanceAppointment> wrapper = new LambdaQueryWrapper<MaintenanceAppointment>()
+                .orderByDesc(MaintenanceAppointment::getCreatedAt);
+        String text = trimmedKeyword(keyword);
+        if (text != null) {
+            wrapper.and(query -> query.like(MaintenanceAppointment::getWorkNo, text)
+                    .or().like(MaintenanceAppointment::getCustomerName, text)
+                    .or().like(MaintenanceAppointment::getCustomerPhone, text));
+        }
+        Page<MaintenanceAppointment> page = appointmentMapper.selectPage(newPage(pageNum, pageSize), wrapper);
+        return new PagedData<>(page.getRecords(), page.getTotal());
     }
 
     @Override
@@ -266,10 +275,17 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<RescueRequest> listRescues() {
-        return rescueRequestMapper.selectList(
-                new LambdaQueryWrapper<RescueRequest>().orderByDesc(RescueRequest::getCreateTime)
-        );
+    public PagedData<RescueRequest> listRescues(String keyword, Integer pageNum, Integer pageSize) {
+        LambdaQueryWrapper<RescueRequest> wrapper = new LambdaQueryWrapper<RescueRequest>()
+                .orderByDesc(RescueRequest::getCreateTime);
+        String text = trimmedKeyword(keyword);
+        if (text != null) {
+            wrapper.and(query -> query.like(RescueRequest::getContactName, text)
+                    .or().like(RescueRequest::getContactPhone, text)
+                    .or().like(RescueRequest::getLocation, text));
+        }
+        Page<RescueRequest> page = rescueRequestMapper.selectPage(newPage(pageNum, pageSize), wrapper);
+        return new PagedData<>(page.getRecords(), page.getTotal());
     }
 
     @Override
@@ -285,10 +301,17 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<ChargingStation> listChargingStations() {
-        return chargingStationMapper.selectList(
-                new LambdaQueryWrapper<ChargingStation>().orderByDesc(ChargingStation::getCreateTime)
-        );
+    public PagedData<ChargingStation> listChargingStations(String keyword, Integer pageNum, Integer pageSize) {
+        LambdaQueryWrapper<ChargingStation> wrapper = new LambdaQueryWrapper<ChargingStation>()
+                .orderByDesc(ChargingStation::getCreateTime);
+        String text = trimmedKeyword(keyword);
+        if (text != null) {
+            wrapper.and(query -> query.like(ChargingStation::getStationName, text)
+                    .or().like(ChargingStation::getCityId, text)
+                    .or().like(ChargingStation::getAddress, text));
+        }
+        Page<ChargingStation> page = chargingStationMapper.selectPage(newPage(pageNum, pageSize), wrapper);
+        return new PagedData<>(page.getRecords(), page.getTotal());
     }
 
     @Override
@@ -328,10 +351,17 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<ServiceStation> listServiceStations() {
-        return serviceStationMapper.selectList(
-                new LambdaQueryWrapper<ServiceStation>().orderByDesc(ServiceStation::getId)
-        );
+    public PagedData<ServiceStation> listServiceStations(String keyword, Integer pageNum, Integer pageSize) {
+        LambdaQueryWrapper<ServiceStation> wrapper = new LambdaQueryWrapper<ServiceStation>()
+                .orderByDesc(ServiceStation::getId);
+        String text = trimmedKeyword(keyword);
+        if (text != null) {
+            wrapper.and(query -> query.like(ServiceStation::getServiceStationName, text)
+                    .or().like(ServiceStation::getCityId, text)
+                    .or().like(ServiceStation::getAddress, text));
+        }
+        Page<ServiceStation> page = serviceStationMapper.selectPage(newPage(pageNum, pageSize), wrapper);
+        return new PagedData<>(page.getRecords(), page.getTotal());
     }
 
     @Override
@@ -359,15 +389,34 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public List<CommunityPost> listCommunityPosts() {
-        return communityPostMapper.selectList(
-                new LambdaQueryWrapper<CommunityPost>().orderByDesc(CommunityPost::getCreateTime)
-        );
+    public PagedData<CommunityPost> listCommunityPosts(String keyword, Integer pageNum, Integer pageSize) {
+        LambdaQueryWrapper<CommunityPost> wrapper = new LambdaQueryWrapper<CommunityPost>()
+                .orderByDesc(CommunityPost::getCreateTime);
+        String text = trimmedKeyword(keyword);
+        if (text != null) {
+            wrapper.like(CommunityPost::getContent, text);
+        }
+        Page<CommunityPost> page = communityPostMapper.selectPage(newPage(pageNum, pageSize), wrapper);
+        return new PagedData<>(page.getRecords(), page.getTotal());
     }
 
     @Override
     public boolean deleteCommunityPost(Long id) {
         return communityPostMapper.deleteById(id) > 0;
+    }
+
+    private <T> Page<T> newPage(Integer pageNum, Integer pageSize) {
+        int num = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        int size = pageSize == null ? 10 : Math.max(1, Math.min(pageSize, 100));
+        return new Page<>(num, size);
+    }
+
+    private String trimmedKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        String text = keyword.trim();
+        return text.isEmpty() ? null : text;
     }
 
     private Map<String, Object> userView(User user) {

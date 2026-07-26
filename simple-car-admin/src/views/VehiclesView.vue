@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import { computed, reactive, shallowRef } from 'vue'
-import { Pencil, Plus, Trash2 } from 'lucide-vue-next'
+import { Pencil, Plus, RefreshCcw, Trash2 } from 'lucide-vue-next'
 import { adminApi, type UserItem, type VehicleItem, type VehiclePayload } from '@/api/admin'
 import AdminDialog from '@/components/AdminDialog.vue'
 import DataTable from '@/components/DataTable.vue'
+import Pagination from '@/components/Pagination.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
-import Toolbar from '@/components/Toolbar.vue'
 import UserSearchSelect from '@/components/UserSearchSelect.vue'
-import { useKeywordFilter } from '@/composables/useKeywordFilter'
 
-const query = shallowRef('')
 const selectedUserId = shallowRef<number | null>(null)
 const selectedUser = shallowRef<UserItem | null>(null)
 const formUser = shallowRef<UserItem | null>(null)
 const vehicles = shallowRef<VehicleItem[]>([])
+const total = shallowRef(0)
+const pageNum = shallowRef(1)
+const pageSize = shallowRef(10)
 const loading = shallowRef(false)
 const error = shallowRef('')
 const dialogOpen = shallowRef(false)
@@ -59,28 +60,50 @@ const columns = [
 
 const dialogTitle = computed(() => (editingId.value ? '编辑车辆' : '新增车辆'))
 
-const visibleVehicles = useKeywordFilter(vehicles, query, ['carName', 'carModels', 'licenseTag', 'userName', 'username'])
-
 async function handleUserSelect(user: UserItem | null) {
   selectedUser.value = user
   selectedUserId.value = user?.id || null
+  pageNum.value = 1
   await loadVehicles()
 }
 
 async function loadVehicles() {
   if (!selectedUserId.value) {
     vehicles.value = []
+    total.value = 0
     return
   }
   loading.value = true
   error.value = ''
   try {
-    vehicles.value = await adminApi.vehicles(selectedUserId.value)
+    const result = await adminApi.vehicles({
+      userId: selectedUserId.value,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    })
+    vehicles.value = result.rows
+    total.value = result.total
+    // 当前页被删空时回退到有效页
+    if (result.rows.length === 0 && result.total > 0 && pageNum.value > 1) {
+      pageNum.value = Math.max(1, Math.ceil(result.total / pageSize.value))
+      await loadVehicles()
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : '车辆加载失败'
   } finally {
     loading.value = false
   }
+}
+
+function setPage(page: number) {
+  pageNum.value = page
+  void loadVehicles()
+}
+
+function setPageSize(size: number) {
+  pageSize.value = size
+  pageNum.value = 1
+  void loadVehicles()
 }
 
 function refresh() {
@@ -173,24 +196,30 @@ function vehicleUser(row: VehicleItem): UserItem {
 </script>
 
 <template>
-  <Toolbar v-model="query" title="车辆资产" placeholder="搜索当前用户下的车辆、车型、车牌" :loading="loading" @refresh="refresh">
-    <template #actions>
-      <UserSearchSelect
-        v-model="selectedUserId"
-        :selected-user="selectedUser"
-        placeholder="搜索用户 ID / 账号 / 昵称 / 手机号"
-        @select="handleUserSelect"
-      />
-      <button class="primary-button compact" type="button" @click="openCreate">
-        <Plus :size="16" />
-        <span>新增车辆</span>
-      </button>
-    </template>
-  </Toolbar>
+  <section class="toolbar">
+    <div class="toolbar-title">
+      <p class="eyebrow">管理列表</p>
+      <h2>车辆资产</h2>
+    </div>
+    <UserSearchSelect
+      v-model="selectedUserId"
+      :selected-user="selectedUser"
+      placeholder="搜索用户 ID / 账号 / 昵称 / 手机号"
+      @select="handleUserSelect"
+    />
+    <button class="primary-button compact" type="button" @click="openCreate">
+      <Plus :size="16" />
+      <span>新增车辆</span>
+    </button>
+    <button class="icon-button" type="button" title="刷新" :disabled="loading" @click="refresh">
+      <RefreshCcw :size="17" />
+    </button>
+  </section>
 
   <div v-if="!selectedUserId" class="empty-hint">先搜索并选择一个用户，再管理该用户名下车辆。</div>
 
-  <DataTable v-else :columns="columns" :rows="visibleVehicles" :loading="loading">
+  <template v-else>
+    <DataTable :columns="columns" :rows="vehicles" :loading="loading">
     <template #remainingPower="{ value }">{{ value ?? 0 }}%</template>
     <template #enduranceMileage="{ value }">{{ value ?? 0 }} km</template>
     <template #carState="{ value }">
@@ -209,6 +238,15 @@ function vehicleUser(row: VehicleItem): UserItem {
       </div>
     </template>
   </DataTable>
+
+    <Pagination
+      :total="total"
+      :page-num="pageNum"
+      :page-size="pageSize"
+      @update:page-num="setPage"
+      @update:page-size="setPageSize"
+    />
+  </template>
 
   <AdminDialog :open="dialogOpen" :title="dialogTitle" @close="dialogOpen = false" @submit="saveVehicle">
     <label class="field">

@@ -43,7 +43,13 @@ async function searchUsers(value = keyword.value) {
   loading.value = true
   searchError.value = ''
   try {
-    matches.value = await adminApi.users(value.trim() || undefined, 20)
+    const trimmed = value.trim()
+    const result = await adminApi.users({
+      ...(trimmed ? { keyword: trimmed } : {}),
+      pageNum: 1,
+      pageSize: 20
+    })
+    matches.value = result.rows
   } catch (err) {
     matches.value = []
     searchError.value = err instanceof Error ? err.message : '搜索失败'

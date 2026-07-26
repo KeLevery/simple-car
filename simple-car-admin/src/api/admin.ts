@@ -1,4 +1,10 @@
-import { http, request } from './http'
+import { http, request, requestPage } from './http'
+
+export interface PageQuery {
+  pageNum?: number
+  pageSize?: number
+  keyword?: string
+}
 
 export interface Overview {
   userCount: number
@@ -137,31 +143,29 @@ export async function login(username: string, password: string) {
 export const adminApi = {
   session: () => request<AdminSession>('/admin/session'),
   overview: () => request<Overview>('/admin/overview'),
-  users: (keyword?: string, limit?: number) =>
-    request<UserItem[]>('/admin/users', {
-      params: {
-        ...(keyword ? { keyword } : {}),
-        ...(limit ? { limit } : {})
-      }
-    }),
+  users: (query: PageQuery = {}) => requestPage<UserItem>('/admin/users', { params: query }),
   createUser: (payload: UserPayload) => http.post('/admin/users', payload),
   updateUser: (id: number, payload: UserPayload) => http.put(`/admin/users/${id}`, payload),
   deleteUser: (id: number) => http.delete(`/admin/users/${id}`),
-  vehicles: (userId?: number) => request<VehicleItem[]>('/admin/vehicles', { params: userId ? { userId } : {} }),
+  vehicles: (query: PageQuery & { userId?: number } = {}) =>
+    requestPage<VehicleItem>('/admin/vehicles', { params: query }),
   createVehicle: (payload: VehiclePayload) => http.post('/admin/vehicles', payload),
   updateVehicle: (id: number, payload: VehiclePayload) => http.put(`/admin/vehicles/${id}`, payload),
   deleteVehicle: (id: number) => http.delete(`/admin/vehicles/${id}`),
-  appointments: () => request<AppointmentItem[]>('/admin/appointments'),
-  rescues: () => request<RescueItem[]>('/admin/rescues'),
-  chargingStations: () => request<ChargingStationItem[]>('/admin/charging-stations'),
+  appointments: (query: PageQuery = {}) => requestPage<AppointmentItem>('/admin/appointments', { params: query }),
+  rescues: (query: PageQuery = {}) => requestPage<RescueItem>('/admin/rescues', { params: query }),
+  chargingStations: (query: PageQuery = {}) =>
+    requestPage<ChargingStationItem>('/admin/charging-stations', { params: query }),
   createChargingStation: (payload: ChargingStationPayload) => http.post('/admin/charging-stations', payload),
   updateChargingStation: (id: number, payload: ChargingStationPayload) => http.put(`/admin/charging-stations/${id}`, payload),
   deleteChargingStation: (id: number) => http.delete(`/admin/charging-stations/${id}`),
-  serviceStations: () => request<ServiceStationItem[]>('/admin/service-stations'),
+  serviceStations: (query: PageQuery = {}) =>
+    requestPage<ServiceStationItem>('/admin/service-stations', { params: query }),
   createServiceStation: (payload: ServiceStationPayload) => http.post('/admin/service-stations', payload),
   updateServiceStation: (id: number, payload: ServiceStationPayload) => http.put(`/admin/service-stations/${id}`, payload),
   deleteServiceStation: (id: number) => http.delete(`/admin/service-stations/${id}`),
-  communityPosts: () => request<CommunityPostItem[]>('/admin/community-posts'),
+  communityPosts: (query: PageQuery = {}) =>
+    requestPage<CommunityPostItem>('/admin/community-posts', { params: query }),
   updateUserStatus: (id: number, status: number) => http.put(`/admin/users/${id}/status`, { status }),
   updateAppointmentStatus: (id: number, status: number) => http.put(`/admin/appointments/${id}/status`, { status }),
   updateRescueStatus: (id: number, status: number) => http.put(`/admin/rescues/${id}/status`, { status }),

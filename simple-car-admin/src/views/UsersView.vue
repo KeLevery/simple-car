@@ -4,12 +4,11 @@ import { Ban, CheckCircle2, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import { adminApi, type UserItem, type UserPayload } from '@/api/admin'
 import AdminDialog from '@/components/AdminDialog.vue'
 import DataTable from '@/components/DataTable.vue'
+import Pagination from '@/components/Pagination.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import Toolbar from '@/components/Toolbar.vue'
-import { useAdminResource } from '@/composables/useAdminResource'
-import { useKeywordFilter } from '@/composables/useKeywordFilter'
+import { usePagedResource } from '@/composables/usePagedResource'
 
-const query = shallowRef('')
 const dialogOpen = shallowRef(false)
 const editingId = shallowRef<number | null>(null)
 const form = reactive<UserPayload>({
@@ -19,7 +18,15 @@ const form = reactive<UserPayload>({
   phone: '',
   status: 1
 })
-const { items, loading, error, refresh, mutate } = useAdminResource<UserItem>(adminApi.users)
+const {
+  items, total, pageNum, pageSize, keyword, loading, error,
+  refresh, mutate, setPage, setPageSize, setKeyword
+} = usePagedResource<UserItem>(adminApi.users)
+
+const query = computed({
+  get: () => keyword.value,
+  set: (value: string) => setKeyword(value)
+})
 
 const userStatusLabels: Record<string, string> = {
   '0': '禁用',
@@ -36,8 +43,6 @@ const columns = [
 ]
 
 const dialogTitle = computed(() => (editingId.value ? '编辑用户' : '新增用户'))
-
-const visibleUsers = useKeywordFilter(items, query, ['username', 'nickName', 'phone'])
 
 function openCreate() {
   editingId.value = null
@@ -90,7 +95,7 @@ async function removeUser(user: UserItem) {
     </template>
   </Toolbar>
 
-  <DataTable :columns="columns" :rows="visibleUsers" :loading="loading">
+  <DataTable :columns="columns" :rows="items" :loading="loading">
     <template #status="{ value }">
       <StatusBadge :value="Number(value)" :labels="userStatusLabels" />
     </template>
@@ -111,6 +116,14 @@ async function removeUser(user: UserItem) {
       </div>
     </template>
   </DataTable>
+
+  <Pagination
+    :total="total"
+    :page-num="pageNum"
+    :page-size="pageSize"
+    @update:page-num="setPage"
+    @update:page-size="setPageSize"
+  />
 
   <AdminDialog :open="dialogOpen" :title="dialogTitle" @close="dialogOpen = false" @submit="saveUser">
     <label class="field">

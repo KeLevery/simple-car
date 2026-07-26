@@ -1,15 +1,22 @@
 <script setup lang="ts">
-import { shallowRef } from 'vue'
+import { computed } from 'vue'
 import { Trash2 } from 'lucide-vue-next'
 import { adminApi, type CommunityPostItem } from '@/api/admin'
 import DataTable from '@/components/DataTable.vue'
+import Pagination from '@/components/Pagination.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import Toolbar from '@/components/Toolbar.vue'
-import { useAdminResource } from '@/composables/useAdminResource'
-import { useKeywordFilter } from '@/composables/useKeywordFilter'
+import { usePagedResource } from '@/composables/usePagedResource'
 
-const query = shallowRef('')
-const { items, loading, error, refresh, mutate } = useAdminResource<CommunityPostItem>(adminApi.communityPosts)
+const {
+  items, total, pageNum, pageSize, keyword, loading, error,
+  refresh, mutate, setPage, setPageSize, setKeyword
+} = usePagedResource<CommunityPostItem>(adminApi.communityPosts)
+
+const query = computed({
+  get: () => keyword.value,
+  set: (value: string) => setKeyword(value)
+})
 
 const columns = [
   { key: 'id', label: 'ID' },
@@ -26,8 +33,6 @@ const hotLabels: Record<string, string> = {
   '1': '热门'
 }
 
-const visiblePosts = useKeywordFilter(items, query, ['content'])
-
 async function removePost(row: CommunityPostItem) {
   const ok = window.confirm(`确认删除动态 #${row.id}？`)
   if (!ok) return
@@ -37,7 +42,7 @@ async function removePost(row: CommunityPostItem) {
 
 <template>
   <Toolbar v-model="query" title="社区内容" placeholder="搜索动态内容" :loading="loading" @refresh="refresh" />
-  <DataTable :columns="columns" :rows="visiblePosts" :loading="loading">
+  <DataTable :columns="columns" :rows="items" :loading="loading">
     <template #content="{ value }">
       <span class="clamped-text">{{ value }}</span>
     </template>
@@ -51,5 +56,12 @@ async function removePost(row: CommunityPostItem) {
       </button>
     </template>
   </DataTable>
+  <Pagination
+    :total="total"
+    :page-num="pageNum"
+    :page-size="pageSize"
+    @update:page-num="setPage"
+    @update:page-size="setPageSize"
+  />
   <p v-if="error" class="inline-error">{{ error }}</p>
 </template>

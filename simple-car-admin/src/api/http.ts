@@ -56,3 +56,19 @@ export async function request<T>(url: string, options: AxiosRequestConfig = {}) 
   const response = await http<ApiResponse<T>>(url, options)
   return response.data.data
 }
+
+export interface PageResult<T> {
+  rows: T[]
+  total: number
+}
+
+/**
+ * 分页请求：PageResponse 的 rows/total 与 data 平级，request<T> 解不出来，单独解包。
+ */
+export async function requestPage<T>(url: string, options: AxiosRequestConfig = {}): Promise<PageResult<T>> {
+  const response = await http<ApiResponse<null> & { rows?: T[]; total?: number }>(url, options)
+  return {
+    rows: response.data.rows ?? [],
+    total: response.data.total ?? 0
+  }
+}

@@ -12,22 +12,38 @@ import {
 } from '@/api/admin'
 import AdminDialog from '@/components/AdminDialog.vue'
 import DataTable from '@/components/DataTable.vue'
+import Pagination from '@/components/Pagination.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import Toolbar from '@/components/Toolbar.vue'
-import { useAdminResource } from '@/composables/useAdminResource'
-import { useKeywordFilter } from '@/composables/useKeywordFilter'
+import { usePagedResource } from '@/composables/usePagedResource'
 
 type TabKey = 'appointments' | 'rescues' | 'charging' | 'service'
 
-const query = shallowRef('')
 const activeTab = shallowRef<TabKey>('appointments')
 const stationDialog = shallowRef<'charging' | 'service' | null>(null)
 const editingStationId = shallowRef<number | null>(null)
 
-const appointments = useAdminResource<AppointmentItem>(adminApi.appointments)
-const rescues = useAdminResource<RescueItem>(adminApi.rescues)
-const chargingStations = useAdminResource<ChargingStationItem>(adminApi.chargingStations)
-const serviceStations = useAdminResource<ServiceStationItem>(adminApi.serviceStations)
+const appointments = usePagedResource<AppointmentItem>(adminApi.appointments)
+const rescues = usePagedResource<RescueItem>(adminApi.rescues)
+const chargingStations = usePagedResource<ChargingStationItem>(adminApi.chargingStations)
+const serviceStations = usePagedResource<ServiceStationItem>(adminApi.serviceStations)
+
+const resources = [appointments, rescues, chargingStations, serviceStations]
+
+const activeResource = computed(() => {
+  if (activeTab.value === 'appointments') return appointments
+  if (activeTab.value === 'rescues') return rescues
+  if (activeTab.value === 'charging') return chargingStations
+  return serviceStations
+})
+
+// 共享搜索框：分发给四个列表各自的服务端 keyword
+const query = computed({
+  get: () => appointments.keyword.value,
+  set: (value: string) => {
+    resources.forEach((resource) => resource.setKeyword(value))
+  }
+})
 
 const chargingForm = reactive<ChargingStationPayload>({
   stationName: '',
@@ -105,24 +121,9 @@ const stationStatusLabels: Record<string, string> = {
   '1': '运营'
 }
 
-const filteredAppointments = useKeywordFilter(appointments.items, query, ['workNo', 'customerName', 'customerPhone'])
-const filteredRescues = useKeywordFilter(rescues.items, query, ['contactName', 'contactPhone', 'location'])
-const filteredChargingStations = useKeywordFilter(chargingStations.items, query, ['stationName', 'cityId', 'address'])
-const filteredServiceStations = useKeywordFilter(serviceStations.items, query, ['serviceStationName', 'cityId', 'address'])
+const loading = computed(() => activeResource.value.loading.value)
 
-const loading = computed(() => {
-  if (activeTab.value === 'appointments') return appointments.loading.value
-  if (activeTab.value === 'rescues') return rescues.loading.value
-  if (activeTab.value === 'charging') return chargingStations.loading.value
-  return serviceStations.loading.value
-})
-
-const error = computed(() => {
-  if (activeTab.value === 'appointments') return appointments.error.value
-  if (activeTab.value === 'rescues') return rescues.error.value
-  if (activeTab.value === 'charging') return chargingStations.error.value
-  return serviceStations.error.value
-})
+const error = computed(() => activeResource.value.error.value)
 
 const stationDialogTitle = computed(() => {
   const prefix = editingStationId.value ? '编辑' : '新增'
@@ -130,10 +131,7 @@ const stationDialogTitle = computed(() => {
 })
 
 async function refreshActive() {
-  if (activeTab.value === 'appointments') await appointments.refresh()
-  if (activeTab.value === 'rescues') await rescues.refresh()
-  if (activeTab.value === 'charging') await chargingStations.refresh()
-  if (activeTab.value === 'service') await serviceStations.refresh()
+  await activeResource.value.refresh()
 }
 
 async function nextAppointmentStatus(row: AppointmentItem) {
@@ -244,7 +242,7 @@ async function deleteServiceStation(row: ServiceStationItem) {
   <DataTable
     v-if="activeTab === 'appointments'"
     :columns="appointmentColumns"
-    :rows="filteredAppointments"
+    :rows="appointments.items.value"
     :loading="appointments.loading.value"
   >
     <template #totalAmount="{ value }">¥{{ Number(value || 0).toFixed(2) }}</template>
@@ -262,7 +260,7 @@ async function deleteServiceStation(row: ServiceStationItem) {
   <DataTable
     v-else-if="activeTab === 'rescues'"
     :columns="rescueColumns"
-    :rows="filteredRescues"
+    :rows="rescues.items.value"
     :loading="rescues.loading.value"
   >
     <template #status="{ value }">
@@ -279,7 +277,7 @@ async function deleteServiceStation(row: ServiceStationItem) {
   <DataTable
     v-else-if="activeTab === 'charging'"
     :columns="chargingColumns"
-    :rows="filteredChargingStations"
+    :rows="chargingStations.items.value"
     :loading="chargingStations.loading.value"
   >
     <template #status="{ value }">
@@ -306,7 +304,7 @@ async function deleteServiceStation(row: ServiceStationItem) {
   <DataTable
     v-else
     :columns="serviceColumns"
-    :rows="filteredServiceStations"
+    :rows="serviceStations.items.value"
     :loading="serviceStations.loading.value"
   >
     <template #status="{ value }">
@@ -325,6 +323,14 @@ async function deleteServiceStation(row: ServiceStationItem) {
       </div>
     </template>
   </DataTable>
+
+  <Pagination
+    :total="activeResource.total.value"
+    :page-num="activeResource.pageNum.value"
+    :page-size="activeResource.pageSize.value"
+    @update:page-num="activeResource.setPage"
+    @update:page-size="activeResource.setPageSize"
+  />
 
   <AdminDialog
     :open="Boolean(stationDialog)"

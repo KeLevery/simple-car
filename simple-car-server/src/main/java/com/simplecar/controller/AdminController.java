@@ -6,6 +6,8 @@ import com.simplecar.model.entity.MaintenanceAppointment;
 import com.simplecar.model.entity.RescueRequest;
 import com.simplecar.model.entity.ServiceStation;
 import com.simplecar.result.ApiResponse;
+import com.simplecar.result.PagedData;
+import com.simplecar.result.PageResponse;
 import com.simplecar.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 @Tag(name = "后台管理")
@@ -54,11 +55,13 @@ public class AdminController {
 
     @Operation(summary = "用户列表")
     @GetMapping("/users")
-    public ApiResponse<List<Map<String, Object>>> users(
+    public PageResponse<Map<String, Object>> users(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Integer limit
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize
     ) {
-        return ApiResponse.success(adminService.listUsers(keyword, limit));
+        PagedData<Map<String, Object>> page = adminService.listUsers(keyword, pageNum, pageSize);
+        return PageResponse.success(page.rows(), page.total());
     }
 
     @Operation(summary = "新增用户")
@@ -87,8 +90,13 @@ public class AdminController {
 
     @Operation(summary = "车辆列表")
     @GetMapping("/vehicles")
-    public ApiResponse<List<Map<String, Object>>> vehicles(@RequestParam(required = false) Long userId) {
-        return ApiResponse.success(adminService.listVehicles(userId));
+    public PageResponse<Map<String, Object>> vehicles(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize
+    ) {
+        PagedData<Map<String, Object>> page = adminService.listVehicles(userId, pageNum, pageSize);
+        return PageResponse.success(page.rows(), page.total());
     }
 
     @Operation(summary = "新增车辆")
@@ -111,8 +119,13 @@ public class AdminController {
 
     @Operation(summary = "维保预约列表")
     @GetMapping("/appointments")
-    public ApiResponse<List<MaintenanceAppointment>> appointments() {
-        return ApiResponse.success(adminService.listAppointments());
+    public PageResponse<MaintenanceAppointment> appointments(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize
+    ) {
+        PagedData<MaintenanceAppointment> page = adminService.listAppointments(keyword, pageNum, pageSize);
+        return PageResponse.success(page.rows(), page.total());
     }
 
     @Operation(summary = "更新维保预约状态")
@@ -123,8 +136,13 @@ public class AdminController {
 
     @Operation(summary = "救援请求列表")
     @GetMapping("/rescues")
-    public ApiResponse<List<RescueRequest>> rescues() {
-        return ApiResponse.success(adminService.listRescues());
+    public PageResponse<RescueRequest> rescues(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize
+    ) {
+        PagedData<RescueRequest> page = adminService.listRescues(keyword, pageNum, pageSize);
+        return PageResponse.success(page.rows(), page.total());
     }
 
     @Operation(summary = "更新救援状态")
@@ -135,8 +153,13 @@ public class AdminController {
 
     @Operation(summary = "充电站列表")
     @GetMapping("/charging-stations")
-    public ApiResponse<List<ChargingStation>> chargingStations() {
-        return ApiResponse.success(adminService.listChargingStations());
+    public PageResponse<ChargingStation> chargingStations(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize
+    ) {
+        PagedData<ChargingStation> page = adminService.listChargingStations(keyword, pageNum, pageSize);
+        return PageResponse.success(page.rows(), page.total());
     }
 
     @Operation(summary = "新增充电站")
@@ -165,8 +188,13 @@ public class AdminController {
 
     @Operation(summary = "服务站列表")
     @GetMapping("/service-stations")
-    public ApiResponse<List<ServiceStation>> serviceStations() {
-        return ApiResponse.success(adminService.listServiceStations());
+    public PageResponse<ServiceStation> serviceStations(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize
+    ) {
+        PagedData<ServiceStation> page = adminService.listServiceStations(keyword, pageNum, pageSize);
+        return PageResponse.success(page.rows(), page.total());
     }
 
     @Operation(summary = "新增服务站")
@@ -189,8 +217,13 @@ public class AdminController {
 
     @Operation(summary = "社区动态列表")
     @GetMapping("/community-posts")
-    public ApiResponse<List<CommunityPost>> communityPosts() {
-        return ApiResponse.success(adminService.listCommunityPosts());
+    public PageResponse<CommunityPost> communityPosts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize
+    ) {
+        PagedData<CommunityPost> page = adminService.listCommunityPosts(keyword, pageNum, pageSize);
+        return PageResponse.success(page.rows(), page.total());
     }
 
     @Operation(summary = "删除社区动态")
