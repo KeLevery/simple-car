@@ -1,9 +1,11 @@
 package com.simplecar.controller;
 
+import com.simplecar.component.OwnershipValidator;
 import com.simplecar.result.ApiResponse;
 import com.simplecar.model.dto.AddVehicleRequest;
 import com.simplecar.model.entity.Vehicle;
 import com.simplecar.service.VehicleService;
+import com.simplecar.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +19,16 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class VehicleController {
     private final VehicleService vehicleService;
+    private final OwnershipValidator ownershipValidator;
 
     @Operation(summary = "查询车辆摘要信息")
     @GetMapping("/bs-vehicle-owner/carInfo/getByCarId/{carId}")
     public ApiResponse<Vehicle> getCarInfo(@PathVariable Long carId) {
+        try {
+            ownershipValidator.requireCarOwnership(carId);
+        } catch (RuntimeException e) {
+            return ApiResponse.error(e.getMessage());
+        }
         Vehicle car = vehicleService.getById(carId);
         if (car == null) {
             return ApiResponse.error("车辆不存在");
@@ -31,6 +39,11 @@ public class VehicleController {
     @Operation(summary = "查询车辆状态")
     @GetMapping("/bs-smart-charger-biz/CarState/{carId}")
     public ApiResponse<Map<String, Object>> getCarState(@PathVariable Long carId) {
+        try {
+            ownershipValidator.requireCarOwnership(carId);
+        } catch (RuntimeException e) {
+            return ApiResponse.error(e.getMessage());
+        }
         Map<String, Object> data = vehicleService.getCarState(carId);
         if (data == null) {
             return ApiResponse.error("车辆不存在");
@@ -43,6 +56,7 @@ public class VehicleController {
     public ApiResponse<Boolean> doCarStart(@RequestBody Map<String, Object> params) {
         Long carId = Long.valueOf(params.get("carId").toString());
         try {
+            ownershipValidator.requireCarOwnership(carId);
             vehicleService.doCarStart(carId);
             return ApiResponse.success(true);
         } catch (RuntimeException e) {
@@ -53,12 +67,22 @@ public class VehicleController {
     @Operation(summary = "查询名下车辆")
     @GetMapping("/bs-vehicle-owner/userCar/queryByUserId/{userId}")
     public ApiResponse<List<Map<String, Object>>> queryByUserId(@PathVariable Long userId) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (currentUserId == null || !currentUserId.equals(userId)) {
+            return ApiResponse.error("无权访问该用户的车辆");
+        }
         return ApiResponse.success(vehicleService.queryByUserId(userId));
     }
 
     @Operation(summary = "添加车辆")
     @PostMapping("/bs-vehicle-owner/userCar/add")
     public ApiResponse<Map<String, Object>> addCar(@RequestBody AddVehicleRequest request) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (currentUserId == null) {
+            return ApiResponse.error("未登录");
+        }
+        // 归属以当前登录用户为准，忽略客户端传入的 userId
+        request.setUserId(currentUserId);
         return ApiResponse.success(vehicleService.addVehicle(request));
     }
 }

@@ -18,5 +18,5 @@ public interface MaintenanceService {
 
     Page<ServiceStation> getStationPage(String cityId, Integer pageNum, Integer pageSize);
 
-    boolean updatePayStatus(Long payId, Integer status, Long appointmentId);
+    boolean updatePayStatus(Long payId, Integer status);
 }

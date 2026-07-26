@@ -11,11 +11,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class UploadServiceImpl implements UploadService {
+
+    private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
+            ".jpg", ".jpeg", ".png", ".gif", ".webp"
+    );
 
     @Value("${upload.path}")
     private String uploadPath;
@@ -29,8 +35,12 @@ public class UploadServiceImpl implements UploadService {
         String originalFilename = file.getOriginalFilename();
         String extension = "";
         if (originalFilename != null && originalFilename.contains(".")) {
-            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase(Locale.ROOT);
         }
+        if (!ALLOWED_EXTENSIONS.contains(extension)) {
+            throw new RuntimeException("不支持的文件类型");
+        }
+
         String fileName = UUID.randomUUID().toString() + extension;
         Path path = Paths.get(uploadPath + fileName);
         Files.write(path, file.getBytes());

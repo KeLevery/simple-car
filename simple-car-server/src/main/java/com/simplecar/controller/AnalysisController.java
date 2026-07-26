@@ -1,5 +1,6 @@
 package com.simplecar.controller;
 
+import com.simplecar.component.OwnershipValidator;
 import com.simplecar.result.ApiResponse;
 import com.simplecar.model.entity.VehicleMileage;
 import com.simplecar.model.entity.ChargingOrder;
@@ -19,11 +20,17 @@ import java.util.Map;
 public class AnalysisController {
     private final AnalysisService analysisService;
     private final ChargingService chargingService;
+    private final OwnershipValidator ownershipValidator;
 
     @Operation(summary = "查询充电订单列表")
     @PostMapping("/bs-vehicle-owner/charging-orders/list")
     public ApiResponse<List<ChargingOrder>> getChargingOrders(@RequestBody Map<String, Object> params) {
         Long carId = Long.valueOf(params.get("carId").toString());
+        try {
+            ownershipValidator.requireCarOwnership(carId);
+        } catch (RuntimeException e) {
+            return ApiResponse.error(e.getMessage());
+        }
         return ApiResponse.success(chargingService.listOrders(carId));
     }
 
@@ -31,6 +38,11 @@ public class AnalysisController {
     @PostMapping("/bs-vehicle-owner/vehicle-mileage/list")
     public ApiResponse<List<VehicleMileage>> getVehicleMileage(@RequestBody Map<String, Object> params) {
         Long carId = Long.valueOf(params.get("carId").toString());
+        try {
+            ownershipValidator.requireCarOwnership(carId);
+        } catch (RuntimeException e) {
+            return ApiResponse.error(e.getMessage());
+        }
         return ApiResponse.success(analysisService.listMileage(carId));
     }
 }
