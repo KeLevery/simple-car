@@ -128,8 +128,10 @@ export interface AdminLoginResult {
 }
 
 export async function login(username: string, password: string) {
-  const response = await http.post('/admin/auth/login', { username, password })
-  return response.data.data as AdminLoginResult
+  return request<AdminLoginResult>('/admin/auth/login', {
+    method: 'post',
+    data: { username, password }
+  })
 }
 
 export const adminApi = {

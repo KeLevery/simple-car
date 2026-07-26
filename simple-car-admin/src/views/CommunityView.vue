@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue'
+import { shallowRef } from 'vue'
 import { Trash2 } from 'lucide-vue-next'
 import { adminApi, type CommunityPostItem } from '@/api/admin'
 import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import Toolbar from '@/components/Toolbar.vue'
 import { useAdminResource } from '@/composables/useAdminResource'
+import { useKeywordFilter } from '@/composables/useKeywordFilter'
 
 const query = shallowRef('')
 const { items, loading, error, refresh, mutate } = useAdminResource<CommunityPostItem>(adminApi.communityPosts)
@@ -25,20 +26,12 @@ const hotLabels: Record<string, string> = {
   '1': '热门'
 }
 
-const visiblePosts = computed(() => {
-  const keyword = query.value.trim().toLowerCase()
-  if (!keyword) return items.value
-  return items.value.filter((item) => String(item.content || '').toLowerCase().includes(keyword))
-})
+const visiblePosts = useKeywordFilter(items, query, ['content'])
 
 async function removePost(row: CommunityPostItem) {
   const ok = window.confirm(`确认删除动态 #${row.id}？`)
   if (!ok) return
   await mutate(() => adminApi.deleteCommunityPost(row.id))
-}
-
-function toPost(row: unknown) {
-  return row as CommunityPostItem
 }
 </script>
 
@@ -52,7 +45,7 @@ function toPost(row: unknown) {
       <StatusBadge :value="Number(value)" :labels="hotLabels" />
     </template>
     <template #actions="{ row }">
-      <button class="danger-button" type="button" @click="removePost(toPost(row))">
+      <button class="danger-button" type="button" @click="removePost(row)">
         <Trash2 :size="15" />
         <span>删除</span>
       </button>

@@ -7,6 +7,7 @@ import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import Toolbar from '@/components/Toolbar.vue'
 import UserSearchSelect from '@/components/UserSearchSelect.vue'
+import { useKeywordFilter } from '@/composables/useKeywordFilter'
 
 const query = shallowRef('')
 const selectedUserId = shallowRef<number | null>(null)
@@ -51,15 +52,7 @@ const columns = [
 
 const dialogTitle = computed(() => (editingId.value ? '编辑车辆' : '新增车辆'))
 
-const visibleVehicles = computed(() => {
-  const keyword = query.value.trim().toLowerCase()
-  if (!keyword) return vehicles.value
-  return vehicles.value.filter((item) =>
-    [item.carName, item.carModels, item.licenseTag, item.userName, item.username].some((value) =>
-      String(value || '').toLowerCase().includes(keyword)
-    )
-  )
-})
+const visibleVehicles = useKeywordFilter(vehicles, query, ['carName', 'carModels', 'licenseTag', 'userName', 'username'])
 
 async function handleUserSelect(user: UserItem | null) {
   selectedUser.value = user
@@ -170,10 +163,6 @@ function vehicleUser(row: VehicleItem): UserItem {
     createdAt: ''
   }
 }
-
-function toVehicle(row: unknown) {
-  return row as VehicleItem
-}
 </script>
 
 <template>
@@ -202,11 +191,11 @@ function toVehicle(row: unknown) {
     </template>
     <template #actions="{ row }">
       <div class="row-actions">
-        <button class="text-button" type="button" @click="openEdit(toVehicle(row))">
+        <button class="text-button" type="button" @click="openEdit(row)">
           <Pencil :size="15" />
           <span>编辑</span>
         </button>
-        <button class="danger-button" type="button" @click="removeVehicle(toVehicle(row))">
+        <button class="danger-button" type="button" @click="removeVehicle(row)">
           <Trash2 :size="15" />
           <span>删除</span>
         </button>

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { adminApi } from '@/api/admin'
+import { clearAdminToken, getAdminToken } from '@/api/token'
 import AdminShell from '@/components/AdminShell.vue'
 import LoginView from '@/views/LoginView.vue'
 
@@ -38,13 +39,13 @@ async function verifyAdminToken(token: string) {
     return true
   } catch {
     verifiedTokens.delete(token)
-    window.localStorage.removeItem('adminToken')
+    clearAdminToken()
     return false
   }
 }
 
 router.beforeEach(async (to) => {
-  const token = window.localStorage.getItem('adminToken')
+  const token = getAdminToken()
   if (to.meta.requiresAuth && !token) {
     return { name: 'login' }
   }

@@ -1,4 +1,5 @@
-import axios from 'axios'
+import axios, { type AxiosRequestConfig } from 'axios'
+import { clearAdminToken, getAdminToken } from './token'
 
 export interface ApiResponse<T> {
   code: number
@@ -12,24 +13,28 @@ export const http = axios.create({
 })
 
 http.interceptors.request.use((config) => {
-  const token = window.localStorage.getItem('adminToken')
+  const token = getAdminToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
+function handleUnauthorized(message?: string) {
+  clearAdminToken()
+  if (window.location.pathname !== '/login') {
+    window.location.assign('/login')
+  }
+  return Promise.reject(new Error(message || '登录已过期'))
+}
+
 http.interceptors.response.use(
   (response) => {
     const result = response.data as ApiResponse<unknown>
     if (result && result.code === 401) {
-      window.localStorage.removeItem('adminToken')
-      if (window.location.pathname !== '/login') {
-        window.location.assign('/login')
-      }
-      return Promise.reject(new Error(result.msg || '登录已过期'))
+      return handleUnauthorized(result.msg)
     }
-    if (result && result.code && result.code !== 200) {
+    if (result && typeof result.code === 'number' && result.code !== 200) {
       return Promise.reject(new Error(result.msg || '请求失败'))
     }
     return response
@@ -38,11 +43,7 @@ http.interceptors.response.use(
     const status = error.response?.status
     const result = error.response?.data as ApiResponse<unknown> | undefined
     if (status === 401 || result?.code === 401) {
-      window.localStorage.removeItem('adminToken')
-      if (window.location.pathname !== '/login') {
-        window.location.assign('/login')
-      }
-      return Promise.reject(new Error(result?.msg || '登录已过期'))
+      return handleUnauthorized(result?.msg)
     }
     if (status === 403 || result?.code === 403) {
       return Promise.reject(new Error(result?.msg || '无后台访问权限'))
@@ -51,7 +52,7 @@ http.interceptors.response.use(
   }
 )
 
-export async function request<T>(url: string, options = {}) {
+export async function request<T>(url: string, options: AxiosRequestConfig = {}) {
   const response = await http<ApiResponse<T>>(url, options)
   return response.data.data
 }

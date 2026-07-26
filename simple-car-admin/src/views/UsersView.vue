@@ -7,6 +7,7 @@ import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import Toolbar from '@/components/Toolbar.vue'
 import { useAdminResource } from '@/composables/useAdminResource'
+import { useKeywordFilter } from '@/composables/useKeywordFilter'
 
 const query = shallowRef('')
 const dialogOpen = shallowRef(false)
@@ -36,13 +37,7 @@ const columns = [
 
 const dialogTitle = computed(() => (editingId.value ? '编辑用户' : '新增用户'))
 
-const visibleUsers = computed(() => {
-  const keyword = query.value.trim().toLowerCase()
-  if (!keyword) return items.value
-  return items.value.filter((item) =>
-    [item.username, item.nickName, item.phone].some((value) => String(value || '').toLowerCase().includes(keyword))
-  )
-})
+const visibleUsers = useKeywordFilter(items, query, ['username', 'nickName', 'phone'])
 
 function openCreate() {
   editingId.value = null
@@ -83,10 +78,6 @@ async function removeUser(user: UserItem) {
   if (!window.confirm(`确认删除用户 ${user.username}？`)) return
   await mutate(() => adminApi.deleteUser(user.id))
 }
-
-function toUser(row: unknown) {
-  return row as UserItem
-}
 </script>
 
 <template>
@@ -105,15 +96,15 @@ function toUser(row: unknown) {
     </template>
     <template #actions="{ row }">
       <div class="row-actions">
-        <button class="text-button" type="button" @click="openEdit(toUser(row))">
+        <button class="text-button" type="button" @click="openEdit(row)">
           <Pencil :size="15" />
           <span>编辑</span>
         </button>
-        <button class="text-button" type="button" @click="toggleStatus(toUser(row))">
-          <component :is="toUser(row).status === 1 ? Ban : CheckCircle2" :size="15" />
-          <span>{{ toUser(row).status === 1 ? '禁用' : '启用' }}</span>
+        <button class="text-button" type="button" @click="toggleStatus(row)">
+          <component :is="row.status === 1 ? Ban : CheckCircle2" :size="15" />
+          <span>{{ row.status === 1 ? '禁用' : '启用' }}</span>
         </button>
-        <button class="danger-button" type="button" @click="removeUser(toUser(row))">
+        <button class="danger-button" type="button" @click="removeUser(row)">
           <Trash2 :size="15" />
           <span>删除</span>
         </button>

@@ -15,6 +15,7 @@ import DataTable from '@/components/DataTable.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import Toolbar from '@/components/Toolbar.vue'
 import { useAdminResource } from '@/composables/useAdminResource'
+import { useKeywordFilter } from '@/composables/useKeywordFilter'
 
 type TabKey = 'appointments' | 'rescues' | 'charging' | 'service'
 
@@ -104,10 +105,10 @@ const stationStatusLabels: Record<string, string> = {
   '1': '运营'
 }
 
-const filteredAppointments = computed(() => filterRows(appointments.items.value, ['workNo', 'customerName', 'customerPhone']))
-const filteredRescues = computed(() => filterRows(rescues.items.value, ['contactName', 'contactPhone', 'location']))
-const filteredChargingStations = computed(() => filterRows(chargingStations.items.value, ['stationName', 'cityId', 'address']))
-const filteredServiceStations = computed(() => filterRows(serviceStations.items.value, ['serviceStationName', 'cityId', 'address']))
+const filteredAppointments = useKeywordFilter(appointments.items, query, ['workNo', 'customerName', 'customerPhone'])
+const filteredRescues = useKeywordFilter(rescues.items, query, ['contactName', 'contactPhone', 'location'])
+const filteredChargingStations = useKeywordFilter(chargingStations.items, query, ['stationName', 'cityId', 'address'])
+const filteredServiceStations = useKeywordFilter(serviceStations.items, query, ['serviceStationName', 'cityId', 'address'])
 
 const loading = computed(() => {
   if (activeTab.value === 'appointments') return appointments.loading.value
@@ -127,12 +128,6 @@ const stationDialogTitle = computed(() => {
   const prefix = editingStationId.value ? '编辑' : '新增'
   return stationDialog.value === 'service' ? `${prefix}服务站` : `${prefix}充电站`
 })
-
-function filterRows<T extends object>(rows: T[], keys: Array<keyof T>) {
-  const keyword = query.value.trim().toLowerCase()
-  if (!keyword) return rows
-  return rows.filter((row) => keys.some((key) => String(row[key] || '').toLowerCase().includes(keyword)))
-}
 
 async function refreshActive() {
   if (activeTab.value === 'appointments') await appointments.refresh()
@@ -216,21 +211,6 @@ async function deleteServiceStation(row: ServiceStationItem) {
   await serviceStations.mutate(() => adminApi.deleteServiceStation(row.id))
 }
 
-function toAppointment(row: unknown) {
-  return row as AppointmentItem
-}
-
-function toRescue(row: unknown) {
-  return row as RescueItem
-}
-
-function toChargingStation(row: unknown) {
-  return row as ChargingStationItem
-}
-
-function toServiceStation(row: unknown) {
-  return row as ServiceStationItem
-}
 </script>
 
 <template>
@@ -272,7 +252,7 @@ function toServiceStation(row: unknown) {
       <StatusBadge :value="Number(value)" :labels="appointmentStatusLabels" />
     </template>
     <template #actions="{ row }">
-      <button class="text-button" type="button" @click="nextAppointmentStatus(toAppointment(row))">
+      <button class="text-button" type="button" @click="nextAppointmentStatus(row)">
         <Clock3 :size="15" />
         <span>流转</span>
       </button>
@@ -289,7 +269,7 @@ function toServiceStation(row: unknown) {
       <StatusBadge :value="Number(value)" :labels="rescueStatusLabels" />
     </template>
     <template #actions="{ row }">
-      <button class="text-button" type="button" @click="nextRescueStatus(toRescue(row))">
+      <button class="text-button" type="button" @click="nextRescueStatus(row)">
         <CheckCircle2 :size="15" />
         <span>流转</span>
       </button>
@@ -307,15 +287,15 @@ function toServiceStation(row: unknown) {
     </template>
     <template #actions="{ row }">
       <div class="row-actions">
-        <button class="text-button" type="button" @click="openEditChargingStation(toChargingStation(row))">
+        <button class="text-button" type="button" @click="openEditChargingStation(row)">
           <Pencil :size="15" />
           <span>编辑</span>
         </button>
-        <button class="text-button" type="button" @click="toggleChargingStation(toChargingStation(row))">
+        <button class="text-button" type="button" @click="toggleChargingStation(row)">
           <PauseCircle :size="15" />
-          <span>{{ toChargingStation(row).status === 1 ? '停用' : '启用' }}</span>
+          <span>{{ row.status === 1 ? '停用' : '启用' }}</span>
         </button>
-        <button class="danger-button" type="button" @click="deleteChargingStation(toChargingStation(row))">
+        <button class="danger-button" type="button" @click="deleteChargingStation(row)">
           <Trash2 :size="15" />
           <span>删除</span>
         </button>
@@ -334,11 +314,11 @@ function toServiceStation(row: unknown) {
     </template>
     <template #actions="{ row }">
       <div class="row-actions">
-        <button class="text-button" type="button" @click="openEditServiceStation(toServiceStation(row))">
+        <button class="text-button" type="button" @click="openEditServiceStation(row)">
           <Pencil :size="15" />
           <span>编辑</span>
         </button>
-        <button class="danger-button" type="button" @click="deleteServiceStation(toServiceStation(row))">
+        <button class="danger-button" type="button" @click="deleteServiceStation(row)">
           <Trash2 :size="15" />
           <span>删除</span>
         </button>

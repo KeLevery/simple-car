@@ -1,19 +1,17 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends { id?: number | string }">
 defineProps<{
   columns: Array<{ key: string; label: string }>
-  rows: unknown[]
+  rows: T[]
   loading?: boolean
   emptyText?: string
 }>()
 
-function getCell(row: unknown, key: string) {
-  if (!row || typeof row !== 'object') return undefined
+function getCell(row: T, key: string) {
   return (row as Record<string, unknown>)[key]
 }
 
-function getRowKey(row: unknown, index: number) {
-  const id = getCell(row, 'id')
-  return id == null ? index : String(id)
+function getRowKey(row: T, index: number) {
+  return row.id == null ? index : String(row.id)
 }
 </script>
 

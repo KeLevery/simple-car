@@ -3,6 +3,7 @@ import { computed, reactive, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { LogIn, ShieldCheck } from 'lucide-vue-next'
 import { login } from '@/api/admin'
+import { setAdminToken } from '@/api/token'
 
 const router = useRouter()
 const form = reactive({
@@ -20,7 +21,7 @@ async function submit() {
   error.value = ''
   try {
     const data = await login(form.username.trim(), form.password)
-    window.localStorage.setItem('adminToken', data.token)
+    setAdminToken(data.token)
     router.push({ name: 'dashboard' })
   } catch (err) {
     error.value = err instanceof Error ? err.message : '登录失败，请检查账号或密码'

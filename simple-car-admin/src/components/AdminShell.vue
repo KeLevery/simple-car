@@ -11,6 +11,7 @@ import {
   Users,
   Wrench
 } from 'lucide-vue-next'
+import { clearAdminToken } from '@/api/token'
 
 const route = useRoute()
 const router = useRouter()
@@ -29,7 +30,7 @@ const pageTitle = computed(() => {
 })
 
 function logout() {
-  window.localStorage.removeItem('adminToken')
+  clearAdminToken()
   router.push({ name: 'login' })
 }
 </script>
