@@ -70,7 +70,7 @@
 					<van-button
 						round
 						block
-						type="info"
+						type="primary"
 						native-type="submit"
 						:loading="submitting"
 						loading-text="添加中..."
@@ -83,15 +83,24 @@
 	</div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { addCar, carInfoList } from '@/api/service'
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
+import { useAuthStore } from '@/stores/auth'
+import { useCarStore, type CarItem } from '@/stores/car'
+
+interface CarEntry {
+	car: { carId?: number; carName?: string; licenseTag?: string; [k: string]: unknown }
+	[k: string]: unknown
+}
 
 const router = useRouter()
 const route = useRoute()
 const { toast, notify, dialog } = useVantCompat()
+const auth = useAuthStore()
+const carStore = useCarStore()
 const submitting = ref(false)
 const form = ref({
 				carName: '',
@@ -99,20 +108,18 @@ const form = ref({
 				licenseTag: '',
 				frameNumber: ''
 			})
-function vinValidator(val) {
+function vinValidator(val: string) {
 			return /^[A-HJ-NPR-Z0-9]{17}$/i.test(val);
 		}
 async function onSubmit() {
 			submitting.value = true;
 			try {
-				const userInfoStr = window.localStorage.getItem('userInfo');
-				if (!userInfoStr) {
+				const userId = auth.userId;
+				if (!userId) {
 					toast('请先登录');
 					submitting.value = false;
 					return;
 				}
-				const userInfo = JSON.parse(userInfoStr);
-				const userId = userInfo.userId || userInfo.id;
 
 				const res = await addCar({
 					userId: userId,
@@ -123,20 +130,17 @@ async function onSubmit() {
 				});
 
 				if (res.code === 200) {
-					// Refresh the carList in localStorage
+					// Refresh the car list via the store
 					try {
 						const listRes = await carInfoList(userId);
-						if (listRes.data) {
-							window.localStorage.setItem('carList', JSON.stringify(listRes.data));
-							// If this is the first car, also set it as carInfo
-							if (listRes.data.length === 1) {
-								const firstCar = listRes.data[0];
-								window.localStorage.setItem('carInfo', JSON.stringify({
-									carId: firstCar.car.carId,
-									carName: firstCar.car.carName,
-									licenseTag: firstCar.car.licenseTag
-								}));
-							}
+						const data = (listRes.data || []) as unknown as CarEntry[];
+						if (data) {
+							const cars: CarItem[] = data.map(entry => ({
+								carId: entry.car.carId,
+								carName: entry.car.carName,
+								licenseTag: entry.car.licenseTag
+							}));
+							carStore.setCars(cars);
 						}
 					} catch (e) {
 						console.error('Failed to refresh car list:', e);

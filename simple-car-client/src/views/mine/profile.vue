@@ -27,7 +27,7 @@
       <van-button
         round
         block
-        type="info"
+        type="primary"
         color="#4b6efd"
         :loading="loading"
         @click="handleSave"
@@ -38,16 +38,18 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { updateProfile } from '@/api/user'
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
+import { useAuthStore, type UserInfo } from '@/stores/auth'
 
 defineOptions({ name: 'ProfileEdit' })
 const router = useRouter()
 const route = useRoute()
 const { toast, notify, dialog } = useVantCompat()
+const auth = useAuthStore()
 const userForm = ref({
         nickName: '',
         phone: ''
@@ -58,18 +60,16 @@ async function handleSave() {
         toast('昵称不能为空')
         return
       }
-      
+
       loading.value = true
       try {
         const res = await updateProfile(userForm.value)
         if (res.code === 200) {
           toast.success('更新成功')
-          // 更新本地存储
-          const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
-          userInfo.nickName = userForm.value.nickName
-          userInfo.phone = userForm.value.phone
-          localStorage.setItem('userInfo', JSON.stringify(userInfo))
-          
+          // 更新 store 中的用户信息（store 会同步写回 localStorage）
+          const merged: UserInfo = { ...(auth.userInfo || {}), nickName: userForm.value.nickName, phone: userForm.value.phone }
+          auth.setLoginUser(merged)
+
           setTimeout(() => {
             router.back()
           }, 1000)
@@ -80,7 +80,7 @@ async function handleSave() {
         loading.value = false
       }
     }
-const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+const userInfo = auth.userInfo as (UserInfo & { phone?: string }) | null
     if (userInfo) {
       userForm.value.nickName = userInfo.nickName || ''
       userForm.value.phone = userInfo.phone || ''

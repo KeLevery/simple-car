@@ -41,7 +41,7 @@
 						</div>
 						<div class="info-row" v-if="item.payment != null">
 							<span class="info-label">维保费用</span>
-							<span class="info-value amount">￥{{ item.payment.price.toFixed(2) }}</span>
+							<span class="info-value amount">￥{{ Number(item.payment.price || 0).toFixed(2) }}</span>
 						</div>
 						<div class="info-row" v-else-if="item.totalAmount != null">
 							<span class="info-label">维保费用</span>
@@ -65,7 +65,7 @@
 	</div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import {
 		carInfoList,
 		appointmentList
@@ -73,66 +73,77 @@ import {
 import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
+import { useAuthStore } from '@/stores/auth'
+
+interface CarEntry {
+	car: { carName?: string; licenseTag?: string; carId?: number; carID?: number; [k: string]: unknown }
+	[k: string]: unknown
+}
+interface RecordItem {
+	id?: number
+	workNo?: string
+	status?: number
+	appointDate?: string
+	appointTime?: string
+	payment?: { price?: number | null } | null
+	totalAmount?: number | null
+	[k: string]: unknown
+}
+interface CarAction {
+	name: string
+	index: number
+	color?: string
+}
 
 const router = useRouter()
 const route = useRoute()
 const { toast, notify, dialog } = useVantCompat()
+const auth = useAuthStore()
 const chooseIndex = ref(0)
-const historyArr = ref([])
+const historyArr = ref<RecordItem[]>([])
 const historyTotal = ref(0)
-const carList = ref([])
-const carId = ref(0)
+const carList = ref<CarEntry[]>([])
+const carId = ref<number | string>(0)
 const loading = ref(false)
 const finished = ref(false)
 const pageNum = ref(1)
 const showCarPicker = ref(false)
-const carActions = computed(() => {
+const carActions = computed<CarAction[]>(() => {
 				return carList.value.map((item, index) => ({
-					name: item.car.carName + ' (' + item.car.licenseTag + ')',
+					name: (item.car.carName || '') + ' (' + (item.car.licenseTag || '') + ')',
 					index: index,
 					color: index === chooseIndex.value ? 'var(--accent)' : undefined
 				}));
 			})
 function loadCarList() {
-				try {
-					const userInfoStr = window.localStorage.getItem('userInfo');
-					if (!userInfoStr) {
-						toast('请先登录');
+				const userId = auth.userId;
+				if (!userId) {
+					toast('请先登录');
+					finished.value = true;
+					return;
+				}
+				carInfoList(userId).then(res => {
+					const data = (res.data || []) as unknown as CarEntry[];
+					if (data.length > 0) {
+						carList.value = data;
+						// Use the first car's carId by default
+						carId.value = data[0].car.carId || data[0].car.carID || 0;
+						chooseIndex.value = 0;
+						// Trigger the list loading
+						getRecordList();
+					} else {
 						finished.value = true;
-						return;
 					}
-					const userInfo = JSON.parse(userInfoStr);
-					const userId = userInfo.userId || userInfo.id;
-					if (!userId) {
-						toast('用户信息异常');
-						finished.value = true;
-						return;
-					}
-					carInfoList(userId).then(res => {
-						if (res.data && res.data.length > 0) {
-							carList.value = res.data;
-							// Use the first car's carId by default
-							carId.value = res.data[0].car.carId || res.data[0].carID;
-							chooseIndex.value = 0;
-							// Trigger the list loading
-							getRecordList();
-						} else {
-							finished.value = true;
-						}
-					}).catch(err => {
-						console.error('Failed to load car list:', err);
-						toast('加载车辆信息失败');
-						finished.value = true;
-					});
-				} catch (e) {
-					console.error('Failed to load car info:', e);
+				}).catch(err => {
+					console.error('Failed to load car list:', err);
 					toast('加载车辆信息失败');
 					finished.value = true;
-				}
+				});
 			}
-function onSelectCar(item) {
+function onSelectCar(item: CarAction) {
 				chooseIndex.value = item.index;
-				carId.value = carList.value[item.index].car.carId || carList.value[item.index].carID;
+				const entry = carList.value[item.index];
+				carId.value = entry.car.carId || entry.car.carID || 0;
 				// Reset and reload
 				historyArr.value = [];
 				historyTotal.value = 0;
@@ -150,7 +161,7 @@ function getRecordList() {
 					if (res.code == 200) {
 						if (res.total > 0) {
 							historyTotal.value = res.total;
-							historyArr.value = historyArr.value.concat(res.rows);
+							historyArr.value = historyArr.value.concat(res.rows as unknown as RecordItem[]);
 							pageNum.value++;
 						}
 						loading.value = false;
@@ -167,7 +178,7 @@ function getRecordList() {
 					finished.value = true;
 				});
 			}
-function statusClass(status) {
+function statusClass(status: unknown) {
 				if (status == 0) return 'pending';
 				if (status == 1) return 'processing';
 				return 'done';

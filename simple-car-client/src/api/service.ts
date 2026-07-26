@@ -1,4 +1,4 @@
-import request from '@/util/request'
+import request, { type PageResult } from '@/util/request'
 
 // 查询经销商列表
 export function dealerList(query: Record<string, unknown>) {
@@ -9,13 +9,13 @@ export function dealerList(query: Record<string, unknown>) {
   })
 }
 
-// 查询维保服务站列表
-export function stationList(query: Record<string, unknown>) {
+// 查询维保服务站列表（分页）
+export function stationList(query: Record<string, unknown>): Promise<PageResult> {
     return request({
       url: '/bs-vehicle-owner/maintenance-service-station/page',
       method: 'get',
       params: query
-    })
+    }) as unknown as Promise<PageResult>
 }
 
 // 查询车辆信息列表
@@ -27,11 +27,12 @@ export function carInfoList(id: number | string) {
 }
 
 // 查询维保预约列表
-export function appointmentList(id: number | string, num: number) {
+// 查询维保预约列表（分页）
+export function appointmentList(id: number | string, num: number): Promise<PageResult> {
     return request({
       url: '/bs-vehicle-owner/maintenance-appointment/page?reasonable=false&carId='+id+'&pageNum='+num,
       method: 'get'
-    })
+    }) as unknown as Promise<PageResult>
 }
 
 // 新增维保预约

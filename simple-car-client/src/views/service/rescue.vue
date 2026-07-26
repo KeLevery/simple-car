@@ -41,7 +41,7 @@
         <div v-for="item in history" :key="item.id" class="history-card">
           <div class="card-header">
             <span class="order-no">救援单号: {{ item.id }}</span>
-            <van-tag :type="getStatusType(item.status)">{{ getStatusName(item.status) }}</van-tag>
+            <van-tag :type="getStatusType(item.status as number)">{{ getStatusName(item.status as number) }}</van-tag>
           </div>
           <div class="card-content">
             <p><van-icon name="location-o" /> {{ item.location }}</p>
@@ -53,13 +53,20 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { createRescue, rescueList } from '@/api/rescue'
 import { ref } from 'vue'
 import { useVantCompat } from '@/composables/useVantCompat'
+import { useAuthStore, type UserInfo } from '@/stores/auth'
+
+interface RescueRecord {
+	id?: number
+	[k: string]: unknown
+}
 
 defineOptions({ name: 'RescueService' })
 const { toast, notify, dialog } = useVantCompat()
+const auth = useAuthStore()
 const loading = ref(false)
 const form = ref({
         contactName: '',
@@ -67,23 +74,18 @@ const form = ref({
         location: '',
         description: ''
       })
-const history = ref([])
+const history = ref<RescueRecord[]>([])
 function initForm() {
-      const userInfoStr = localStorage.getItem('userInfo')
-      if (userInfoStr) {
-        try {
-          const userInfo = JSON.parse(userInfoStr)
-          form.value.contactName = userInfo.nickname || userInfo.username || ''
-          form.value.contactPhone = userInfo.phone || ''
-        } catch (e) {
-          console.error('解析用户信息失败', e)
-        }
+      const userInfo = auth.userInfo as (UserInfo & { nickname?: string; phone?: string }) | null
+      if (userInfo) {
+        form.value.contactName = userInfo.nickname || userInfo.username || ''
+        form.value.contactPhone = userInfo.phone || ''
       }
     }
 async function fetchHistory() {
       const res = await rescueList()
       if (res.code === 200) {
-        history.value = res.data
+        history.value = (res.data || []) as unknown as RescueRecord[]
       }
     }
 async function handleRescue() {
@@ -118,8 +120,8 @@ function getLocation() {
         toast.success('已自动获取位置')
       }, 1000)
     }
-function getStatusName(status) {
-      const map = {
+function getStatusName(status: number) {
+      const map: Record<number, string> = {
         0: '待处理',
         1: '救援中',
         2: '已完成',
@@ -127,8 +129,8 @@ function getStatusName(status) {
       }
       return map[status] || '未知'
     }
-function getStatusType(status) {
-      const map = {
+function getStatusType(status: number): 'warning' | 'primary' | 'success' | 'default' {
+      const map: Record<number, 'warning' | 'primary' | 'success' | 'default'> = {
         0: 'warning',
         1: 'primary',
         2: 'success',
@@ -136,11 +138,11 @@ function getStatusType(status) {
       }
       return map[status] || 'default'
     }
-function formatDate(date) {
+function formatDate(date: unknown) {
       if (!date) return ''
-      const d = new Date(date)
+      const d = new Date(date as string)
       if (isNaN(d.getTime())) return date
-      const pad = (n) => String(n).padStart(2, '0')
+      const pad = (n: number) => String(n).padStart(2, '0')
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
     }
 initForm()

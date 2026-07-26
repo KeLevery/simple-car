@@ -53,7 +53,7 @@
 					:rules="[{ validator:verifyPhone,required: true, message: '请输入正确的联系电话' }]" />
 
 				<div class="submitBox">
-					<van-button round block type="info" native-type="submit">预约提交</van-button>
+					<van-button round block type="primary" native-type="submit">预约提交</van-button>
 				</div>
 			</van-form>
 		</div>
@@ -98,8 +98,8 @@
 					<td>{{index+1}}</td>
 					<td>{{item.category}}</td>
 					<td>{{item.replacementPart}}</td>
-					<td>¥{{item.unitPrice.toFixed(2)}}</td>
-					<td>¥{{item.totalPrice.toFixed(2)}}</td>
+					<td>¥{{Number(item.unitPrice||0).toFixed(2)}}</td>
+					<td>¥{{Number(item.totalPrice||0).toFixed(2)}}</td>
 					<td>{{item.duration}}天</td>
 				</tr>
 				<tr>
@@ -117,7 +117,7 @@
 	</div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import {
 		areaList as areaData
 	} from '@vant/area-data';
@@ -132,11 +132,31 @@ import SignBoard from '@/components/SignBoard.vue';
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
+import { useAuthStore } from '@/stores/auth'
+
+interface StationItem {
+	id?: number
+	serviceStationName?: string
+	[k: string]: unknown
+}
+interface PlanItem {
+	price?: number
+	unitPrice?: number | string
+	totalPrice?: number | string
+	[k: string]: unknown
+}
+interface CarEntry {
+	car?: { carName?: string; carModels?: string; licenseTag?: string; carId?: number; carID?: number; [k: string]: unknown }
+	carId?: number
+	carID?: number
+	[k: string]: unknown
+}
 
 const router = useRouter()
 const route = useRoute()
 const { toast, notify, dialog } = useVantCompat()
-const randomPlan = ref([])
+const auth = useAuthStore()
+const randomPlan = ref<PlanItem[]>([])
 const totalAmount = ref(0)
 const imgSrc = ref('')
 const signImg = ref('')
@@ -145,10 +165,11 @@ const showCity = ref(false)
 const city = ref("")
 const areaList = areaData
 const cityId = ref(0)
-const columns = ref([])
+// van-picker columns 运行时接受 string[]，但 Vant 4 的 PickerOption 类型只认对象，故用 any[] 兼容
+const columns = ref<any[]>([])
 const showStation = ref(false)
 const station = ref("")
-const stationData = ref([])
+const stationData = ref<StationItem[]>([])
 const stationId = ref(0)
 const contacts = ref("1")
 const fullName = ref('')
@@ -160,12 +181,12 @@ const appointTime = ref('')
 const licensetag = ref('')
 const showCar = ref(false)
 const car = ref('')
-const carList = ref([])
-const carData = ref([])
-const carId = ref(0)
-const minHour = ref('')
+const carList = ref<any[]>([])
+const carData = ref<CarEntry[]>([])
+const carId = ref<number | string>(0)
+const minHour = ref<string | number>('')
 const pickCar = ref('1')
-const minMinutes = ref('')
+const minMinutes = ref<string | number>('')
 function goBack() {
 				router.go(-1);
 			}
@@ -174,9 +195,9 @@ function gotoHistory() {
 					path: '/service/record'
 				});
 			}
-function cityConfirm(e) {
+function cityConfirm(e: Array<{ name: string; code: string | number }>) {
 				city.value = e[1].name;
-				cityId.value = e[1].code;
+				cityId.value = e[1].code as number;
 				showCity.value = false;
 				getStationList();
 			}
@@ -187,10 +208,11 @@ function getStationList() {
 				stationList({
 					cityId: cityId.value
 				}).then(res => {
-					stationData.value = res.rows;
-					let stations = []
-					res.rows.forEach(item => {
-						stations.push(item.serviceStationName);
+					const rows = ((res as unknown as { rows?: StationItem[] }).rows || []) as StationItem[];
+					stationData.value = rows;
+					let stations: string[] = []
+					rows.forEach(item => {
+						stations.push(item.serviceStationName || '');
 					})
 					columns.value = stations;
 					if (stationData.value.length === 0) {
@@ -211,16 +233,16 @@ function chooseStation() {
 					toast("请选择城市")
 				}
 			}
-function stationConfirm(e, index) {
+function stationConfirm(e: string, index: number) {
 				station.value = e;
-				stationId.value = stationData.value[index].id;
+				stationId.value = stationData.value[index].id || 0;
 				showStation.value = false;
 			}
-function dateConfirm(e) {
+function dateConfirm(e: Date) {
 				appointDate.value = `${e.getFullYear()}-${e.getMonth()+1}-${e.getDate()}`;
 				showDate.value = false;
 			}
-function chooseTime(e) {
+function chooseTime(e?: unknown) {
 				if (appointDate.value == currentTime()) {
 					minHour.value = new Date().getHours();
 					minMinutes.value = new Date().getMinutes();
@@ -238,52 +260,53 @@ function currentTime() {
 				let current = year + "-" + month + "-" + date;
 				return current;
 			}
-function timeConfirm({ selectedValues }) {
+function timeConfirm({ selectedValues }: { selectedValues: string[] }) {
 				appointTime.value = selectedValues.join(':');
 				showTime.value = false;
 			}
 function getCarList() {
-				const userInfoStr = window.localStorage.getItem("userInfo");
-				if (!userInfoStr) {
+				const userId = auth.userId;
+				if (!userId) {
 					toast.fail('请先登录');
 					return;
 				}
-				let userId = JSON.parse(userInfoStr).userId;
 				carInfoList(userId).then(res => {
-					carData.value = res.data;
-					let columns = [];
-					res.data.forEach(item => {
-						columns.push(item.car.carName + " " + item.car.carModels);
+					const data = (res.data || []) as unknown as CarEntry[];
+					carData.value = data;
+					let columns: string[] = [];
+					data.forEach(item => {
+						columns.push((item.car?.carName || '') + " " + (item.car?.carModels || ''));
 					})
 					carList.value = columns;
 				})
 			}
-function carConfirm(e, index) {
+function carConfirm(e: string, index: number) {
 				car.value = e;
 				// 兼容 carID 和 carId 两种字段名
 				const picked = carData.value[index] || {};
-				carId.value = picked.carID || picked.carId || (picked.car && (picked.car.carId || picked.car.carID));
-				licensetag.value = picked.car ? picked.car.licenseTag : '';
+				carId.value = picked.carID || picked.carId || (picked.car && (picked.car.carId || picked.car.carID)) || 0;
+				licensetag.value = picked.car ? (picked.car.licenseTag || '') : '';
 				showCar.value = false;
 			}
 function getPlanList() {
 				planRandomList().then(res => {
 					if (res.code == 200) {
 						let total = 0;
-						randomPlan.value = res.data;
-						res.data.forEach(item => {
-							total += item.totalPrice
+						const data = (res.data || []) as unknown as PlanItem[];
+						randomPlan.value = data;
+						data.forEach(item => {
+							total += Number(item.totalPrice || 0)
 						});
 						totalAmount.value = total;
 					}
 				})
 			}
-function verifyPhone(val) {
+function verifyPhone(val: string) {
 				let pattern = /^(13[0-9]|14[01456879]|15[0-35-9]|16[2567]|17[0-8]|18[0-9]|19[0-35-9])\d{8}$/;
 				return pattern.test(val);
 			}
 function createOrder() {
-				if (mtType.value == 0) {
+				if (mtType.value == '0') {
 					let formInfo = {
 						type: mtType.value, //类型
 						carId: carId.value, //车辆id
@@ -296,16 +319,17 @@ function createOrder() {
 
 					appointmentAdd(formInfo).then(res => {
 						if (res.code == 200) {
+							const data = res.data as { paymentAmount?: number; paymentId?: number; workNo?: string; id?: number } | null;
 							notify({
 								type: 'success',
 								message: '提交成功！'
 							});
 							router.push({
-								path: '/pay?money=' + res.data.paymentAmount + '&payId=' + res.data.paymentId + '&workNo=' + res.data.workNo + '&orderId=' + res.data.id
+								path: '/pay?money=' + (data?.paymentAmount || '') + '&payId=' + (data?.paymentId || '') + '&workNo=' + (data?.workNo || '') + '&orderId=' + (data?.id || '')
 							})
 						}
 					})
-				} else if (mtType.value == 1) {
+				} else if (mtType.value == '1') {
 					let formInfo = {
 						type: mtType.value,
 						carId: carId.value,
@@ -321,13 +345,14 @@ function createOrder() {
 					if (signImg.value.length > 0) {
 						appointmentAdd(formInfo).then(res => {
 							if (res.code == 200) {
+								const data = res.data as { paymentAmount?: number; paymentId?: number; workNo?: string; id?: number } | null;
 								notify({
 									type: 'success',
 									message: '提交成功！'
 								});
 								router.push({
-									path: '/pay?money=' + res.data.paymentAmount + '&payId=' + res.data
-										.paymentId + '&workNo=' + res.data.workNo + '&orderId=' + res.data.id
+									path: '/pay?money=' + (data?.paymentAmount || '') + '&payId=' + (data
+										?.paymentId || '') + '&workNo=' + (data?.workNo || '') + '&orderId=' + (data?.id || '')
 								})
 							}
 						})
@@ -337,7 +362,7 @@ function createOrder() {
 					}
 				}
 			}
-function cvsCfm(data) {
+function cvsCfm(data: { canvas: HTMLCanvasElement }) {
 				// canvas图像转图片
 				imgSrc.value = data.canvas.toDataURL("image/png");
 
@@ -357,7 +382,7 @@ function cvsCfm(data) {
 					formData.append('file', blob, `sign${new Date().getTime()}.png`)
 					commonUpload(formData).then(res => {
 						if (res.code == 200) {
-							signImg.value = res.fileName;
+							signImg.value = (res as unknown as { fileName?: string }).fileName || '';
 							notify({
 								type: 'success',
 								message: '签名已上传！'

@@ -134,16 +134,20 @@
 	</div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import Tabbar from "@/components/Tabbar.vue"
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
 import { clearAuth } from '@/util/request'
+import { useAuthStore, type UserInfo } from '@/stores/auth'
+import { useCarStore } from '@/stores/car'
 
 const router = useRouter()
 const route = useRoute()
 const { toast, notify, dialog } = useVantCompat()
+const auth = useAuthStore()
+const carStore = useCarStore()
 const nickName = ref('')
 const phone = ref('')
 const avatar = ref('https://img01.yzcdn.cn/vant/cat.jpeg')
@@ -152,25 +156,19 @@ const totalCharge = ref('0')
 const carCount = ref('0')
 const hasNewMsg = ref(true)
 function initProfile() {
-			const userInfo = window.localStorage.getItem('userInfo');
-			if (userInfo) {
-				const user = JSON.parse(userInfo);
-				nickName.value = user.nickName || user.userName;
+			const user = auth.userInfo as (UserInfo & { userName?: string; phonenumber?: string; avatar?: string }) | null;
+			if (user) {
+				nickName.value = user.nickName || user.userName || '';
 				phone.value = user.phonenumber ? user.phonenumber.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '';
 				avatar.value = user.avatar || '';
 			}
-			const carList = window.localStorage.getItem('carList');
-			if (carList) {
-				const cars = JSON.parse(carList);
-				carCount.value = cars.length;
-			}
-			const carInfo = window.localStorage.getItem('carInfo');
-			if (carInfo) {
-				const car = JSON.parse(carInfo);
-				totalMileage.value = car.totalMileage || '0';
+			carCount.value = String(carStore.carList.length);
+			if (carStore.carInfo) {
+				const car = carStore.carInfo as { totalMileage?: string | number };
+				totalMileage.value = String(car.totalMileage || '0');
 			}
 		}
-function gotoPage(path) {
+function gotoPage(path: string) {
 			router.push({ path });
 		}
 function contactCS() {
