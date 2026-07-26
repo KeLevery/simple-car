@@ -126,10 +126,16 @@ async function saveVehicle() {
     error.value = '请先搜索并选择所属用户'
     return
   }
-  if (editingId.value) {
-    await adminApi.updateVehicle(editingId.value, { ...form })
-  } else {
-    await adminApi.createVehicle({ ...form })
+  error.value = ''
+  try {
+    if (editingId.value) {
+      await adminApi.updateVehicle(editingId.value, { ...form })
+    } else {
+      await adminApi.createVehicle({ ...form })
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '保存失败'
+    return
   }
   selectedUserId.value = form.userId
   selectedUser.value = formUser.value
@@ -139,7 +145,13 @@ async function saveVehicle() {
 
 async function removeVehicle(row: VehicleItem) {
   if (!window.confirm(`确认删除车辆 ${row.licenseTag}？`)) return
-  await adminApi.deleteVehicle(row.id)
+  error.value = ''
+  try {
+    await adminApi.deleteVehicle(row.id)
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '删除失败'
+    return
+  }
   await loadVehicles()
 }
 

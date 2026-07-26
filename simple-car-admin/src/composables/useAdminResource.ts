@@ -19,6 +19,21 @@ export function useAdminResource<T>(loader: () => Promise<T[]>) {
     }
   }
 
+  /**
+   * 包装写操作：失败时写入 error 并返回 false，成功后自动刷新列表。
+   */
+  async function mutate(action: () => Promise<unknown>): Promise<boolean> {
+    error.value = ''
+    try {
+      await action()
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : '操作失败'
+      return false
+    }
+    await refresh()
+    return true
+  }
+
   onMounted(refresh)
 
   return {
@@ -26,6 +41,7 @@ export function useAdminResource<T>(loader: () => Promise<T[]>) {
     loading,
     error,
     hasData,
-    refresh
+    refresh,
+    mutate
   }
 }

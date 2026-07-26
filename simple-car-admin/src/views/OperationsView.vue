@@ -116,9 +116,12 @@ const loading = computed(() => {
   return serviceStations.loading.value
 })
 
-const error = computed(() =>
-  appointments.error.value || rescues.error.value || chargingStations.error.value || serviceStations.error.value
-)
+const error = computed(() => {
+  if (activeTab.value === 'appointments') return appointments.error.value
+  if (activeTab.value === 'rescues') return rescues.error.value
+  if (activeTab.value === 'charging') return chargingStations.error.value
+  return serviceStations.error.value
+})
 
 const stationDialogTitle = computed(() => {
   const prefix = editingStationId.value ? '编辑' : '新增'
@@ -139,18 +142,15 @@ async function refreshActive() {
 }
 
 async function nextAppointmentStatus(row: AppointmentItem) {
-  await adminApi.updateAppointmentStatus(row.id, row.status >= 2 ? 0 : row.status + 1)
-  await appointments.refresh()
+  await appointments.mutate(() => adminApi.updateAppointmentStatus(row.id, row.status >= 2 ? 0 : row.status + 1))
 }
 
 async function nextRescueStatus(row: RescueItem) {
-  await adminApi.updateRescueStatus(row.id, row.status >= 2 ? 0 : row.status + 1)
-  await rescues.refresh()
+  await rescues.mutate(() => adminApi.updateRescueStatus(row.id, row.status >= 2 ? 0 : row.status + 1))
 }
 
 async function toggleChargingStation(row: ChargingStationItem) {
-  await adminApi.updateChargingStationStatus(row.id, row.status === 1 ? 0 : 1)
-  await chargingStations.refresh()
+  await chargingStations.mutate(() => adminApi.updateChargingStationStatus(row.id, row.status === 1 ? 0 : 1))
 }
 
 function openCreateStation(type: 'charging' | 'service') {
@@ -186,35 +186,34 @@ function openEditServiceStation(row: ServiceStationItem) {
 }
 
 async function saveStation() {
+  let ok = false
   if (stationDialog.value === 'charging') {
-    if (editingStationId.value) {
-      await adminApi.updateChargingStation(editingStationId.value, { ...chargingForm })
-    } else {
-      await adminApi.createChargingStation({ ...chargingForm })
-    }
-    await chargingStations.refresh()
+    ok = await chargingStations.mutate(() =>
+      editingStationId.value
+        ? adminApi.updateChargingStation(editingStationId.value, { ...chargingForm })
+        : adminApi.createChargingStation({ ...chargingForm })
+    )
   }
   if (stationDialog.value === 'service') {
-    if (editingStationId.value) {
-      await adminApi.updateServiceStation(editingStationId.value, { ...serviceForm })
-    } else {
-      await adminApi.createServiceStation({ ...serviceForm })
-    }
-    await serviceStations.refresh()
+    ok = await serviceStations.mutate(() =>
+      editingStationId.value
+        ? adminApi.updateServiceStation(editingStationId.value, { ...serviceForm })
+        : adminApi.createServiceStation({ ...serviceForm })
+    )
   }
-  stationDialog.value = null
+  if (ok) {
+    stationDialog.value = null
+  }
 }
 
 async function deleteChargingStation(row: ChargingStationItem) {
   if (!window.confirm(`确认删除充电站 ${row.stationName}？`)) return
-  await adminApi.deleteChargingStation(row.id)
-  await chargingStations.refresh()
+  await chargingStations.mutate(() => adminApi.deleteChargingStation(row.id))
 }
 
 async function deleteServiceStation(row: ServiceStationItem) {
   if (!window.confirm(`确认删除服务站 ${row.serviceStationName}？`)) return
-  await adminApi.deleteServiceStation(row.id)
-  await serviceStations.refresh()
+  await serviceStations.mutate(() => adminApi.deleteServiceStation(row.id))
 }
 
 function toAppointment(row: unknown) {

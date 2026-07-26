@@ -18,7 +18,7 @@ const form = reactive<UserPayload>({
   phone: '',
   status: 1
 })
-const { items, loading, error, refresh } = useAdminResource<UserItem>(adminApi.users)
+const { items, loading, error, refresh, mutate } = useAdminResource<UserItem>(adminApi.users)
 
 const userStatusLabels: Record<string, string> = {
   '0': '禁用',
@@ -67,24 +67,21 @@ async function saveUser() {
   if (editingId.value && !payload.password) {
     delete payload.password
   }
-  if (editingId.value) {
-    await adminApi.updateUser(editingId.value, payload)
-  } else {
-    await adminApi.createUser(payload)
+  const ok = await mutate(() =>
+    editingId.value ? adminApi.updateUser(editingId.value, payload) : adminApi.createUser(payload)
+  )
+  if (ok) {
+    dialogOpen.value = false
   }
-  dialogOpen.value = false
-  await refresh()
 }
 
 async function toggleStatus(user: UserItem) {
-  await adminApi.updateUserStatus(user.id, user.status === 1 ? 0 : 1)
-  await refresh()
+  await mutate(() => adminApi.updateUserStatus(user.id, user.status === 1 ? 0 : 1))
 }
 
 async function removeUser(user: UserItem) {
   if (!window.confirm(`确认删除用户 ${user.username}？`)) return
-  await adminApi.deleteUser(user.id)
-  await refresh()
+  await mutate(() => adminApi.deleteUser(user.id))
 }
 
 function toUser(row: unknown) {

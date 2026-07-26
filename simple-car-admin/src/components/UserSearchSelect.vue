@@ -17,6 +17,7 @@ const keyword = shallowRef('')
 const matches = shallowRef<UserItem[]>([])
 const loading = shallowRef(false)
 const panelOpen = shallowRef(false)
+const searchError = shallowRef('')
 let timer: ReturnType<typeof setTimeout> | undefined
 
 watch(
@@ -40,11 +41,19 @@ onBeforeUnmount(() => {
 
 async function searchUsers(value = keyword.value) {
   loading.value = true
+  searchError.value = ''
   try {
     matches.value = await adminApi.users(value.trim() || undefined, 20)
+  } catch (err) {
+    matches.value = []
+    searchError.value = err instanceof Error ? err.message : '搜索失败'
   } finally {
     loading.value = false
   }
+}
+
+function closePanel() {
+  panelOpen.value = false
 }
 
 async function openPanel() {
@@ -81,6 +90,7 @@ function formatUser(user: UserItem) {
         v-model="keyword"
         :placeholder="placeholder || '输入用户 ID / 账号 / 昵称 / 手机号'"
         @focus="openPanel"
+        @blur="closePanel"
       />
       <button v-if="model" type="button" title="清空用户" @click="clearUser">
         <X :size="14" />
@@ -100,7 +110,8 @@ function formatUser(user: UserItem) {
           <span>{{ user.username }} · {{ user.phone || '未填写手机号' }}</span>
         </button>
       </template>
-      <div v-if="!loading && matches.length === 0" class="user-search-state">没有匹配用户</div>
+      <div v-if="!loading && searchError" class="user-search-state">{{ searchError }}</div>
+      <div v-else-if="!loading && matches.length === 0" class="user-search-state">没有匹配用户</div>
     </div>
   </div>
 </template>

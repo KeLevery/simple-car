@@ -23,7 +23,8 @@ export const router = createRouter({
         { path: 'operations', name: 'operations', component: () => import('@/views/OperationsView.vue') },
         { path: 'community', name: 'community', component: () => import('@/views/CommunityView.vue') }
       ]
-    }
+    },
+    { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
   ]
 })
 

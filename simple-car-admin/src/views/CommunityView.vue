@@ -8,7 +8,7 @@ import Toolbar from '@/components/Toolbar.vue'
 import { useAdminResource } from '@/composables/useAdminResource'
 
 const query = shallowRef('')
-const { items, loading, error, refresh } = useAdminResource<CommunityPostItem>(adminApi.communityPosts)
+const { items, loading, error, refresh, mutate } = useAdminResource<CommunityPostItem>(adminApi.communityPosts)
 
 const columns = [
   { key: 'id', label: 'ID' },
@@ -34,8 +34,7 @@ const visiblePosts = computed(() => {
 async function removePost(row: CommunityPostItem) {
   const ok = window.confirm(`确认删除动态 #${row.id}？`)
   if (!ok) return
-  await adminApi.deleteCommunityPost(row.id)
-  await refresh()
+  await mutate(() => adminApi.deleteCommunityPost(row.id))
 }
 
 function toPost(row: unknown) {
