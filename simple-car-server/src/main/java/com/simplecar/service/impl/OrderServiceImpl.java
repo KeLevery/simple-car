@@ -3,6 +3,7 @@ package com.simplecar.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.simplecar.model.entity.*;
 import com.simplecar.mapper.*;
+import com.simplecar.result.PagedData;
 import com.simplecar.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,23 @@ public class OrderServiceImpl implements OrderService {
     private final MaintenanceAppointmentMapper appointmentMapper;
     private final UserVehicleMapper userVehicleMapper;
 
-    public List<Map<String, Object>> getUserOrders(Long userId) {
+    /**
+     * 充电+维保订单跨两张异构表合并排序，无法直接 selectPage，采用内存分页。
+     * 单用户订单量级为几十~几百条，成本可忽略；若量级显著增长，迁移方向是
+     * UNION ALL 自定义 SQL + 数据库分页。
+     */
+    @Override
+    public PagedData<Map<String, Object>> getUserOrders(Long userId, Integer pageNum, Integer pageSize) {
+        List<Map<String, Object>> allOrders = loadAllOrders(userId);
+        int num = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        int size = pageSize == null ? 10 : Math.max(1, Math.min(pageSize, 50));
+        int total = allOrders.size();
+        int from = Math.min((num - 1) * size, total);
+        int to = Math.min(from + size, total);
+        return new PagedData<>(allOrders.subList(from, to), total);
+    }
+
+    private List<Map<String, Object>> loadAllOrders(Long userId) {
         List<Map<String, Object>> allOrders = new ArrayList<>();
 
         List<UserVehicle> userVehicles = userVehicleMapper.selectList(

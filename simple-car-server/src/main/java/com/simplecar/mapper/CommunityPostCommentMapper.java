@@ -1,12 +1,12 @@
 package com.simplecar.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.simplecar.model.entity.CommunityPostComment;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-
-import java.util.List;
 
 @Mapper
 public interface CommunityPostCommentMapper extends BaseMapper<CommunityPostComment> {
@@ -16,5 +16,5 @@ public interface CommunityPostCommentMapper extends BaseMapper<CommunityPostComm
             "LEFT JOIN user u ON c.user_id = u.id " +
             "WHERE c.post_id = #{postId} " +
             "ORDER BY c.create_time ASC")
-    List<CommunityPostComment> selectCommentsWithUserInfo(@Param("postId") Long postId);
+    IPage<CommunityPostComment> selectCommentsWithUserInfo(Page<CommunityPostComment> page, @Param("postId") Long postId);
 }

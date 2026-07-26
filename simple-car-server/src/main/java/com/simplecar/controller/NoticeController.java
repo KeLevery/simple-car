@@ -1,6 +1,7 @@
 package com.simplecar.controller;
 
-import com.simplecar.result.ApiResponse;
+import com.simplecar.result.PagedData;
+import com.simplecar.result.PageResponse;
 import com.simplecar.util.SecurityUtils;
 import com.simplecar.model.entity.Notice;
 import com.simplecar.service.NoticeService;
@@ -9,9 +10,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @Tag(name = "通知管理")
 @RestController
@@ -22,8 +22,12 @@ public class NoticeController {
 
     @Operation(summary = "获取当前用户通知列表")
     @GetMapping("/list")
-    public ApiResponse<List<Notice>> getNotices() {
+    public PageResponse<Notice> getNotices(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize
+    ) {
         Long userId = SecurityUtils.getCurrentUserId();
-        return ApiResponse.success(noticeService.getNotices(userId));
+        PagedData<Notice> page = noticeService.getNotices(userId, pageNum, pageSize);
+        return PageResponse.success(page.rows(), page.total());
     }
 }

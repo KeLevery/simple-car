@@ -1,9 +1,8 @@
 package com.simplecar.service;
 
 import com.simplecar.model.entity.Notice;
-
-import java.util.List;
+import com.simplecar.result.PagedData;
 
 public interface NoticeService {
-    List<Notice> getNotices(Long userId);
+    PagedData<Notice> getNotices(Long userId, Integer pageNum, Integer pageSize);
 }

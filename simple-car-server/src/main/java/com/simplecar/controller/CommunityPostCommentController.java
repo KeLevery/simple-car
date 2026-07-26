@@ -1,6 +1,8 @@
 package com.simplecar.controller;
 
 import com.simplecar.result.ApiResponse;
+import com.simplecar.result.PagedData;
+import com.simplecar.result.PageResponse;
 import com.simplecar.util.SecurityUtils;
 import com.simplecar.model.entity.CommunityPostComment;
 import com.simplecar.service.CommunityPostCommentService;
@@ -9,7 +11,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @Tag(name = "社区评论")
@@ -21,8 +22,13 @@ public class CommunityPostCommentController {
 
     @Operation(summary = "获取动态评论列表")
     @GetMapping("/post/{postId}/comments")
-    public ApiResponse<List<CommunityPostComment>> listComments(@PathVariable Long postId) {
-        return ApiResponse.success(commentService.listComments(postId));
+    public PageResponse<CommunityPostComment> listComments(
+            @PathVariable Long postId,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize
+    ) {
+        PagedData<CommunityPostComment> page = commentService.listComments(postId, pageNum, pageSize);
+        return PageResponse.success(page.rows(), page.total());
     }
 
     @Operation(summary = "发表评论")

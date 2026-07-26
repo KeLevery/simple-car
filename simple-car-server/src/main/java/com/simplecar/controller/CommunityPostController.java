@@ -1,6 +1,8 @@
 package com.simplecar.controller;
 
 import com.simplecar.result.ApiResponse;
+import com.simplecar.result.PagedData;
+import com.simplecar.result.PageResponse;
 import com.simplecar.util.SecurityUtils;
 import com.simplecar.model.entity.CommunityPost;
 import com.simplecar.service.CommunityPostService;
@@ -9,7 +11,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @Tag(name = "社区管理")
@@ -21,9 +22,13 @@ public class CommunityPostController {
 
     @Operation(summary = "获取动态列表")
     @GetMapping("/post/list")
-    public ApiResponse<List<CommunityPost>> list() {
+    public PageResponse<CommunityPost> list(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize
+    ) {
         Long userId = SecurityUtils.getCurrentUserId();
-        return ApiResponse.success(postService.listPosts(userId));
+        PagedData<CommunityPost> page = postService.listPosts(userId, pageNum, pageSize);
+        return PageResponse.success(page.rows(), page.total());
     }
 
     @Operation(summary = "点赞/取消点赞")

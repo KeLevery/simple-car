@@ -1,11 +1,10 @@
 package com.simplecar.service;
 
 import com.simplecar.model.entity.CommunityPostComment;
-
-import java.util.List;
+import com.simplecar.result.PagedData;
 
 public interface CommunityPostCommentService {
-    List<CommunityPostComment> listComments(Long postId);
+    PagedData<CommunityPostComment> listComments(Long postId, Integer pageNum, Integer pageSize);
 
     CommunityPostComment createComment(Long postId, Long userId, String content);
 }

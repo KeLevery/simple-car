@@ -19,11 +19,15 @@ public class ViolationController {
 
     @Operation(summary = "查询违章记录")
     @GetMapping("/list")
-    public ApiResponse<Map<String, Object>> getViolations(@RequestParam(required = false) Long carId) {
+    public ApiResponse<Map<String, Object>> getViolations(
+            @RequestParam(required = false) Long carId,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize
+    ) {
         Long userId = SecurityUtils.getCurrentUserId();
         if (userId == null) {
             return ApiResponse.error(401, "请先登录");
         }
-        return ApiResponse.success(violationService.getViolations(userId, carId));
+        return ApiResponse.success(violationService.getViolations(userId, carId, pageNum, pageSize));
     }
 }

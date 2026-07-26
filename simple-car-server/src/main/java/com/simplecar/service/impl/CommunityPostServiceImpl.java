@@ -1,10 +1,13 @@
 package com.simplecar.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.simplecar.model.entity.CommunityPost;
 import com.simplecar.model.entity.CommunityPostLike;
 import com.simplecar.mapper.CommunityPostMapper;
 import com.simplecar.mapper.CommunityPostLikeMapper;
+import com.simplecar.result.PagedData;
 import com.simplecar.service.CommunityPostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -21,12 +24,15 @@ public class CommunityPostServiceImpl implements CommunityPostService {
     private final CommunityPostLikeMapper likeMapper;
 
     @Override
-    public List<CommunityPost> listPosts(Long currentUserId) {
-        List<CommunityPost> posts = postMapper.selectPostListWithUserInfo(currentUserId);
+    public PagedData<CommunityPost> listPosts(Long currentUserId, Integer pageNum, Integer pageSize) {
+        int num = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        int size = pageSize == null ? 10 : Math.max(1, Math.min(pageSize, 100));
+        IPage<CommunityPost> page = postMapper.selectPostListWithUserInfo(new Page<>(num, size), currentUserId);
+        List<CommunityPost> posts = page.getRecords();
         posts.forEach(p -> {
             p.setIsLiked(p.getIsLikedCount() != null && p.getIsLikedCount() > 0);
         });
-        return posts;
+        return new PagedData<>(posts, page.getTotal());
     }
 
     @Override

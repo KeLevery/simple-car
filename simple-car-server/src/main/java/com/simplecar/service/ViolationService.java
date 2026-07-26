@@ -3,5 +3,5 @@ package com.simplecar.service;
 import java.util.Map;
 
 public interface ViolationService {
-    Map<String, Object> getViolations(Long userId, Long carId);
+    Map<String, Object> getViolations(Long userId, Long carId, Integer pageNum, Integer pageSize);
 }
