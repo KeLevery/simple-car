@@ -36,7 +36,7 @@
       <van-button
         round
         block
-        type="info"
+        type="primary"
         color="#4b6efd"
         :loading="loading"
         @click="handleSave"
@@ -47,7 +47,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { changePassword } from '@/api/user'
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'

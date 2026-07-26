@@ -39,17 +39,24 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { getUserSettings, updateUserSettings } from '@/api/user'
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
 
+interface NotificationSettings {
+	system: boolean
+	maintenance: boolean
+	charging: boolean
+	community: boolean
+}
+
 const router = useRouter()
 const route = useRoute()
 const { toast, notify, dialog } = useVantCompat()
 const loading = ref(false)
-const settings = ref({
+const settings = ref<NotificationSettings>({
 				system: true,
 				maintenance: true,
 				charging: true,
@@ -58,12 +65,13 @@ const settings = ref({
 async function loadSettings() {
 			try {
 				const res = await getUserSettings('notification')
-				if (res.code === 200 && res.data && Object.keys(res.data).length > 0) {
+				const data = res.data as Record<string, unknown> | null | undefined
+				if (res.code === 200 && data && Object.keys(data).length > 0) {
 					settings.value = {
-						system: res.data.system === 'true',
-						maintenance: res.data.maintenance === 'true',
-						charging: res.data.charging === 'true',
-						community: res.data.community === 'true'
+						system: data.system === 'true',
+						maintenance: data.maintenance === 'true',
+						charging: data.charging === 'true',
+						community: data.community === 'true'
 					}
 					return;
 				}

@@ -25,7 +25,7 @@
                     <div class="itemRight">银行卡[1127]</div>
                 </div>
                 <div class="payBtn">
-                    <van-button @click="payCmf" round block type="info">确认交易</van-button>
+                    <van-button @click="payCmf" round block type="primary">确认交易</van-button>
                 </div>
             </div>
         </van-popup>
@@ -42,7 +42,7 @@
 	</div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { paymentUpdate } from '@/api/payment'
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -55,7 +55,7 @@ const show = ref(true)
 const price = ref(1189)
 const radio = ref('1')
 const dialogShow = ref(false)
-const historyArr = ref([])
+const historyArr = ref<unknown[]>([])
 const orderId = ref(0)
 const payId = ref(0)
 function goBack() {
@@ -80,9 +80,9 @@ function noPay() {
 function giveUp() {
             router.push({path: '/home'})
         }
-payId.value = parseInt(route.query.payId)
-        orderId.value = parseInt(route.query.orderId)
-        price.value = parseFloat(route.query.money)
+payId.value = parseInt(route.query.payId as string)
+        orderId.value = parseInt(route.query.orderId as string)
+        price.value = parseFloat(route.query.money as string)
 </script>
 
 <style lang="scss" scoped>

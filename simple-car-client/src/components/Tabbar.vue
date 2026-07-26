@@ -42,15 +42,14 @@
 	</van-tabbar>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, toRefs, watch } from 'vue'
 
 defineOptions({ name: 'Tabbar' })
-const props = defineProps({
-		active: {
-			type: String,
-			default: '/home'
-		}
+const props = withDefaults(defineProps<{
+		active?: string
+	}>(), {
+		active: '/home'
 	})
 const { active } = toRefs(props)
 const activePath = ref(active.value)

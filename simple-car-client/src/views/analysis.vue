@@ -61,7 +61,7 @@
 	</div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import {
 	chargeOrderList,
 	mileageList
@@ -69,14 +69,32 @@ import {
 import { graphic, init as initEcharts } from '@/util/echarts';
 import Tabbar from "@/components/Tabbar.vue"
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useCarStore } from '@/stores/car'
 
-const firstChartEl = ref(null)
-const secondChartEl = ref(null)
-let firstChart
-let secondChart
+type EChartsInstance = ReturnType<typeof initEcharts>
+type EChartsOption = Parameters<EChartsInstance['setOption']>[0]
+
+interface MileageItem {
+	createTime: string
+	carMileage: number
+	[key: string]: unknown
+}
+
+interface ChargeOrderItem {
+	createTime?: string
+	chargedQuantity: number
+	actualPaymentAmount: number
+	[key: string]: unknown
+}
+
+const carStore = useCarStore()
+const firstChartEl = ref<HTMLDivElement | null>(null)
+const secondChartEl = ref<HTMLDivElement | null>(null)
+let firstChart: EChartsInstance | undefined
+let secondChart: EChartsInstance | undefined
 const updateTime = ref('')
-const MarchTotal = ref(0)
-const MayTotal = ref(0)
+const MarchTotal = ref<number | string>(0)
+const MayTotal = ref<number | string>(0)
 const totalChargeCount = ref(0)
 const totalCharged = ref('0.0')
 const totalPay = ref('0.0')
@@ -119,7 +137,7 @@ const option = ref({
 				},
 				series: [
 					{
-						name: '充电次数', type: 'bar', barWidth: 6, data: [],
+						name: '充电次数', type: 'bar', barWidth: 6, data: [] as (string | number)[],
 						itemStyle: {
 							borderRadius: [3, 3, 0, 0],
 							color: new graphic.LinearGradient(0, 0, 0, 1, [
@@ -129,7 +147,7 @@ const option = ref({
 						}
 					},
 					{
-						name: '充电量', type: 'bar', barWidth: 6, data: [],
+						name: '充电量', type: 'bar', barWidth: 6, data: [] as (string | number)[],
 						itemStyle: {
 							borderRadius: [3, 3, 0, 0],
 							color: new graphic.LinearGradient(0, 0, 0, 1, [
@@ -139,7 +157,7 @@ const option = ref({
 						}
 					},
 					{
-						name: '花费', type: 'bar', barWidth: 6, data: [],
+						name: '花费', type: 'bar', barWidth: 6, data: [] as (string | number)[],
 						itemStyle: {
 							borderRadius: [3, 3, 0, 0],
 							color: new graphic.LinearGradient(0, 0, 0, 1, [
@@ -197,7 +215,7 @@ const option2 = ref({
 								{ offset: 1, color: 'rgba(59, 130, 246, 0)' }
 							])
 						},
-						data: []
+						data: [] as (string | number)[]
 					},
 					{
 						name: '行驶里程', type: 'line', smooth: true, symbol: 'circle', symbolSize: 6,
@@ -208,7 +226,7 @@ const option2 = ref({
 								{ offset: 1, color: 'rgba(245, 158, 11, 0)' }
 							])
 						},
-						data: []
+						data: [] as (string | number)[]
 					}
 				]
 			})
@@ -217,17 +235,17 @@ function initData() {
 	getOrderList();
 }
 function getMileageList() {
-			const carInfoLocal = window.localStorage.getItem('carInfo');
-			if (!carInfoLocal) return;
-			let carId = JSON.parse(carInfoLocal).carId;
+			if (!carStore.carInfo) return;
+			let carId = carStore.carInfo.carId;
 
 			mileageList({ carId }).then(res => {
-				if (res.code === 200 && res.data && res.data.length > 0) {
-					updateTime.value = res.data[0].createTime;
+				const data = res.data as MileageItem[] | null | undefined;
+				if (res.code === 200 && data && data.length > 0) {
+					updateTime.value = data[0].createTime;
 
 					// 动态按月聚合里程数据
-					const monthlyMileage = {};
-					res.data.forEach(item => {
+					const monthlyMileage: Record<string, MileageItem[]> = {};
+					data.forEach(item => {
 						const month = item.createTime.substring(0, 7); // YYYY-MM
 						if (!monthlyMileage[month]) {
 							monthlyMileage[month] = [];
@@ -256,15 +274,15 @@ function getMileageList() {
 			});
 		}
 function getOrderList() {
-			const carInfoLocal = window.localStorage.getItem('carInfo');
-			if (!carInfoLocal) return;
-			let carId = JSON.parse(carInfoLocal).carId;
+			if (!carStore.carInfo) return;
+			let carId = carStore.carInfo.carId;
 
 			chargeOrderList({ carId, chargeOrderList: 3 }).then(res => {
-				if (res.code === 200 && res.data) {
+				const data = res.data as ChargeOrderItem[] | null | undefined;
+				if (res.code === 200 && data) {
 					// 动态按月聚合充电数据
-					const monthlyData = {};
-					res.data.forEach(item => {
+					const monthlyData: Record<string, { count: number; quantity: number; pay: number }> = {};
+					data.forEach(item => {
 						if (item.createTime) {
 							const month = item.createTime.substring(0, 7); // YYYY-MM
 							if (!monthlyData[month]) {
@@ -316,7 +334,7 @@ function initCharts() {
 	secondChart = initChart(secondChartEl.value, secondChart, option2.value);
 }
 
-function initChart(chartEl, chart, chartOption) {
+function initChart(chartEl: HTMLDivElement | null, chart: EChartsInstance | undefined, chartOption: EChartsOption) {
 	if (!chartEl) return chart;
 	const instance = chart || initEcharts(chartEl);
 	instance.setOption(chartOption);

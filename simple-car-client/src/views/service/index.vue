@@ -109,22 +109,30 @@
 	</div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import Tabbar from "@/components/Tabbar.vue"
 import { stationList } from '@/api/charging'
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
+interface Station {
+	stationName?: string
+	address?: string
+	availablePiles?: number
+	totalPiles?: number
+	[key: string]: unknown
+}
+
 const router = useRouter()
 const route = useRoute()
-const stations = ref([])
+const stations = ref<Station[]>([])
 async function fetchStations() {
 			const res = await stationList({ cityId: '320100' });
 			if (res.code === 200) {
-				stations.value = res.data;
+				stations.value = res.data as Station[];
 			}
 		}
-function gotoPage(path) {
+function gotoPage(path: string) {
 			router.push({
 				path: path
 			});

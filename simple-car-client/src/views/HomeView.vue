@@ -102,7 +102,7 @@
 	</div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import Tabbar from "@/components/Tabbar.vue"
 import SmartAssistant from "@/components/SmartAssistant.vue"
 import { carInfo } from '@/api/carInfo'
@@ -117,16 +117,34 @@ import closeTrunkActiveIcon from '@/assets/closeTrunk_act.png'
 import { computed, onActivated, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
+import { useAuthStore } from '@/stores/auth'
+import { useCarStore, type CarItem } from '@/stores/car'
+
+interface CarDetail {
+	carName?: string
+	totalMileage?: string | number
+	interiorTemp?: string | number
+	enduranceMileage?: number
+	remainingPower?: number
+	[key: string]: unknown
+}
+
+interface CarAction {
+	name: string
+	carId?: number | string
+	color?: string
+}
 
 defineOptions({ name: 'home' })
 const router = useRouter()
 const route = useRoute()
 const { toast, notify, dialog } = useVantCompat()
-const carInfos = ref({})
-const carId = ref(0)
-const carList = ref([])
+const auth = useAuthStore()
+const carStore = useCarStore()
+const carInfos = ref<CarDetail>({})
+const carId = ref<number | string>(0)
 const showCarPicker = ref(false)
-const controlAct = ref(null)
+const controlAct = ref<number | null>(null)
 const controlList = ref([
 				{ label: '车门解锁', defaultSrc: unlockIcon, actSrc: unlockActiveIcon },
 				{ label: '车门上锁', defaultSrc: lockedIcon, actSrc: lockedActiveIcon },
@@ -143,9 +161,9 @@ const greeting = computed(() => {
 			if (h < 18) return '下午好';
 			return '晚上好';
 		})
-const carActions = computed(() => {
-			const list = carList.value.map(car => ({
-				name: car.carName + ' (' + car.licenseTag + ')',
+const carActions = computed<CarAction[]>(() => {
+			const list: CarAction[] = carStore.carList.map((car: CarItem) => ({
+				name: (car.carName || '') + ' (' + (car.licenseTag || '') + ')',
 				carId: car.carId,
 				color: car.carId === carId.value ? 'var(--accent)' : undefined
 			}));
@@ -160,30 +178,28 @@ const dashOffset = computed(() => {
 			return dashArray.value * (1 - pct / 100);
 		})
 function initCarData() {
-			const carInfoLocal = window.localStorage.getItem('carInfo');
-			if (carInfoLocal) {
-				carId.value = JSON.parse(carInfoLocal).carId;
-			}
-			const carListLocal = window.localStorage.getItem('carList');
-			if (carListLocal) {
-				carList.value = JSON.parse(carListLocal);
+			if (carStore.carInfo) {
+				carId.value = (carStore.carInfo as { carId?: number | string }).carId || 0;
 			}
 		}
-function onSelectCar(item) {
+function onSelectCar(item: CarAction) {
 			if (item.carId === '__ADD__') {
 				router.push('/mine/addCar');
 				return;
 			}
+			if (item.carId === undefined) return;
 			carId.value = item.carId;
-			const selectedCar = carList.value.find(c => c.carId === item.carId);
-			window.localStorage.setItem('carInfo', JSON.stringify(selectedCar));
-			getCarInfo();
-			toast.success('已切换至 ' + selectedCar.carName);
+			const selectedCar = carStore.carList.find((c: CarItem) => c.carId === item.carId);
+			if (selectedCar) {
+				carStore.selectCar(selectedCar);
+				getCarInfo();
+				toast.success('已切换至 ' + (selectedCar.carName || ''));
+			}
 		}
-function gotoPage(path) {
+function gotoPage(path: string) {
 			router.push({ path })
 		}
-function doorTips(text, num) {
+function doorTips(text: string, num: number) {
 			if (controlAct.value === num) {
 				controlAct.value = null;
 			} else {
@@ -192,7 +208,7 @@ function doorTips(text, num) {
 			}
 		}
 function checkLogin() {
-			if (!window.localStorage.getItem('hasLogin')) {
+			if (!auth.isLoggedIn) {
 				router.push({ path: '/' })
 			} else {
 				getCarInfo();
@@ -201,10 +217,11 @@ function checkLogin() {
 function getCarInfo() {
 			if (!carId.value) return;
 			carInfo(carId.value).then(res => {
-				if (res.code == 200) {
-					carInfos.value = res.data;
-					enduranceMileage.value = carInfos.value.enduranceMileage || 0;
-					batteryPer.value = res.data.remainingPower || 0;
+				if (res.code == 200 && res.data) {
+					const data = res.data as CarDetail;
+					carInfos.value = data;
+					enduranceMileage.value = data.enduranceMileage || 0;
+					batteryPer.value = data.remainingPower || 0;
 				}
 			});
 		}

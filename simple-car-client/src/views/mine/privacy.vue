@@ -34,17 +34,23 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { getUserSettings, updateUserSettings } from '@/api/user'
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
 
+interface PrivacySettings {
+	showMoments: boolean
+	showCarInfo: boolean
+	personalized: boolean
+}
+
 const router = useRouter()
 const route = useRoute()
 const { toast, notify, dialog } = useVantCompat()
 const loading = ref(false)
-const settings = ref({
+const settings = ref<PrivacySettings>({
 				showMoments: true,
 				showCarInfo: false,
 				personalized: true
@@ -52,11 +58,12 @@ const settings = ref({
 async function loadSettings() {
 			try {
 				const res = await getUserSettings('privacy')
-				if (res.code === 200 && res.data && Object.keys(res.data).length > 0) {
+				const data = res.data as Record<string, unknown> | null | undefined
+				if (res.code === 200 && data && Object.keys(data).length > 0) {
 					settings.value = {
-						showMoments: res.data.showMoments === 'true',
-						showCarInfo: res.data.showCarInfo === 'true',
-						personalized: res.data.personalized === 'true'
+						showMoments: data.showMoments === 'true',
+						showCarInfo: data.showCarInfo === 'true',
+						personalized: data.personalized === 'true'
 					}
 					return;
 				}

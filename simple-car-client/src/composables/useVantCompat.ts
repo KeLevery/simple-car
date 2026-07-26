@@ -9,14 +9,26 @@ import {
   showToast
 } from 'vant'
 
-const toast = Object.assign(showToast, {
+type ToastCompat = typeof showToast & {
+  success: typeof showSuccessToast
+  fail: typeof showFailToast
+  loading: typeof showLoadingToast
+  clear: typeof closeToast
+}
+
+interface DialogCompat {
+  confirm: typeof showConfirmDialog
+  alert: typeof showDialog
+}
+
+const toast: ToastCompat = Object.assign(showToast, {
   success: showSuccessToast,
   fail: showFailToast,
   loading: showLoadingToast,
   clear: closeToast
 })
 
-const dialog = {
+const dialog: DialogCompat = {
   confirm: showConfirmDialog,
   alert: showDialog
 }

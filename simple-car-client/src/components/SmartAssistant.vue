@@ -69,16 +69,18 @@
 	</div>
 </template>
 
-<script setup>
-import { getPageIndex } from '@/assistant/pageIndex'
+<script setup lang="ts">
+import { getPageIndex, type PageIndexItem } from '@/assistant/pageIndex'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
+type ScoredPage = PageIndexItem & { score: number; reason: string }
+
 const RECENT_KEY = 'sa_recent_pages_v1'
-function normalizeQuery(q) {
+function normalizeQuery(q: unknown) {
 	return String(q || '').trim().toLowerCase()
 }
-function includesText(hay, needle) {
+function includesText(hay: unknown, needle: string) {
 	if (!hay || !needle) return false
 	return String(hay).toLowerCase().includes(needle)
 }
@@ -88,27 +90,27 @@ const router = useRouter()
 const route = useRoute()
 const open = ref(false)
 const query = ref('')
-const results = ref([])
-const recentPages = ref([])
-const pinnedPages = ref([])
+const results = ref<ScoredPage[]>([])
+const recentPages = ref<PageIndexItem[]>([])
+const pinnedPages = ref<PageIndexItem[]>([])
 const recentMax = ref(5)
 const normalizedQuery = computed(() => {
 			return normalizeQuery(query.value)
 		})
-function readRecentPaths() {
+function readRecentPaths(): string[] {
 			try {
 				const raw = window.localStorage.getItem(RECENT_KEY)
 				const arr = JSON.parse(raw || '[]')
 				if (!Array.isArray(arr)) return []
-				return arr.filter(p => typeof p === 'string' && p)
+				return arr.filter((p): p is string => typeof p === 'string' && !!p)
 			} catch (e) {
 				return []
 			}
 		}
-function writeRecentPaths(paths) {
+function writeRecentPaths(paths: string[]) {
 			window.localStorage.setItem(RECENT_KEY, JSON.stringify(paths.slice(0, recentMax.value)))
 		}
-function pushRecentPath(path) {
+function pushRecentPath(path: string) {
 			const paths = readRecentPaths().filter(p => p !== path)
 			paths.unshift(path)
 			writeRecentPaths(paths)
@@ -116,13 +118,13 @@ function pushRecentPath(path) {
 			// keep UI in sync if popup is open
 			refreshRecentAndPinned(getPageIndex())
 		}
-function refreshRecentAndPinned(pages) {
+function refreshRecentAndPinned(pages: PageIndexItem[]) {
 			const byPath = new Map(pages.map(p => [p.path, p]))
 			const recentPaths = readRecentPaths()
 
 			recentPages.value = recentPaths
 				.map(p => byPath.get(p))
-				.filter(Boolean)
+				.filter((p): p is PageIndexItem => Boolean(p))
 				.slice(0, recentMax.value)
 
 			const recentSet = new Set(recentPaths)
@@ -185,7 +187,7 @@ function refreshResults() {
 
 			results.value = scored
 		}
-function goto(path) {
+function goto(path: string) {
 			open.value = false
 			query.value = ''
 			results.value = []

@@ -81,7 +81,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import Tabbar from "@/components/Tabbar.vue"
 import { doCarStart, CarState } from '@/api/carInfo'
 import controlImage from '@/assets/control/control.png'
@@ -91,8 +91,27 @@ import ventilateImage from '@/assets/control/ventilate.png'
 import whistleImage from '@/assets/control/whistle.png'
 import { computed, ref } from 'vue'
 import { useVantCompat } from '@/composables/useVantCompat'
+import { useCarStore } from '@/stores/car'
 
-const controlImages = {
+interface ControlAction {
+    label: string
+    icon: string
+    action: string
+}
+
+interface QuickFunction {
+    label: string
+    desc: string
+    activeDesc: string
+    color: string
+}
+
+interface CarStateData {
+    isOnline?: boolean
+    [key: string]: unknown
+}
+
+const controlImages: Record<string, string> = {
     firing: firingImage,
     light: lightImage,
     ventilate: ventilateImage,
@@ -101,17 +120,18 @@ const controlImages = {
 
 defineOptions({ name: 'control' })
 const { toast, notify, dialog } = useVantCompat()
-const carId = ref(0)
-const carState = ref({})
-const activeControls = ref({})
-const controlActions = ref([
+const carStore = useCarStore()
+const carId = ref<number>(0)
+const carState = ref<CarStateData>({})
+const activeControls = ref<Record<number, boolean>>({})
+const controlActions = ref<ControlAction[]>([
                 { label: '引擎启动', icon: 'fire-o', action: 'firing' },
                 { label: '灯光控制', icon: 'bulb-o', action: 'light' },
                 { label: '寻车鸣笛', icon: 'volume-o', action: 'whistle' },
                 { label: '通风换气', icon: 'cluster-o', action: 'ventilate' },
             ])
-const activeQuicks = ref({})
-const quickFunctions = ref([
+const activeQuicks = ref<Record<number, boolean>>({})
+const quickFunctions = ref<QuickFunction[]>([
                 { label: '空调预冷', desc: '远程开启空调', activeDesc: '空调已开启运行中', color: '#3b82f6' },
                 { label: '座椅加热', desc: '远程加热座椅', activeDesc: '座椅加热中', color: '#f59e0b' },
                 { label: '后备箱开启', desc: '远程开启后备箱', activeDesc: '后备箱已开启', color: '#22c55e' },
@@ -143,11 +163,11 @@ function fetchCarState() {
             if (!carId.value) return;
             CarState(carId.value).then(res => {
                 if (res.code == 200) {
-                    carState.value = res.data || {};
+                    carState.value = (res.data || {}) as CarStateData;
                 }
             }).catch(() => {});
         }
-function executeControl(item, index) {
+function executeControl(item: ControlAction, index: number) {
             if (activeControls.value[index]) {
                 // Turn off
                 activeControls.value[index] = false;
@@ -166,7 +186,7 @@ function executeControl(item, index) {
                 // 业务/网络错误已由 request 拦截器提示
             });
         }
-function executeQuick(item, index) {
+function executeQuick(item: QuickFunction, index: number) {
             if (activeQuicks.value[index]) {
                 // Turn off
                 activeQuicks.value[index] = false;
@@ -177,10 +197,10 @@ function executeQuick(item, index) {
                 toast.success(item.label + '指令已发送');
             }
         }
-const carInfo = window.localStorage.getItem('carInfo');
-        if (carInfo) {
-            const parsed = JSON.parse(carInfo);
-            carId.value = parsed.carId || (parsed.car && parsed.car.carId) || 0;
+const parsed = carStore.carInfo;
+        if (parsed) {
+            const nestedCar = parsed.car as { carId?: number } | undefined;
+            carId.value = parsed.carId || (nestedCar && nestedCar.carId) || 0;
         }
         fetchCarState();
 </script>

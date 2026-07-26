@@ -36,7 +36,7 @@
         </div>
         <div class="station-actions">
           <div class="distance">距离 1.2km</div>
-          <van-button size="small" type="info" round plain icon="guide-o">导航</van-button>
+          <van-button size="small" type="primary" round plain icon="guide-o">导航</van-button>
         </div>
       </div>
       <van-empty v-if="stations.length === 0" description="暂无充电站数据" />
@@ -44,12 +44,21 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { stationList } from '@/api/charging'
 import { ref } from 'vue'
 
+interface Station {
+	id?: number
+	stationName?: string
+	address?: string
+	availablePiles: number
+	totalPiles: number
+	[key: string]: unknown
+}
+
 defineOptions({ name: 'ChargingStation' })
-const stations = ref([])
+const stations = ref<Station[]>([])
 const cityValue = ref('320100')
 const statusValue = ref(0)
 const cityOptions = ref([
@@ -67,7 +76,7 @@ async function fetchStations() {
         availableOnly: statusValue.value === 1
       })
       if (res.code === 200) {
-        stations.value = res.data
+        stations.value = res.data as Station[]
       }
     }
 function onCityChange() {

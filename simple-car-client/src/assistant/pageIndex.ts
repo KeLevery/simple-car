@@ -1,8 +1,25 @@
 import router from '@/router'
 
-let cachedIndex = null
+export interface PageIndexItem {
+	path: string
+	title: string
+	keywords: string[]
+	pinned: boolean
+	pinnedOrder: number
+}
 
-function normalizeKeywords(keywords) {
+// 路由 meta 的自定义字段（title/keywords/pinned/pinnedOrder），用宽松类型消费
+interface LoosePageMeta {
+	title?: unknown
+	keywords?: unknown
+	pinned?: unknown
+	pinnedOrder?: unknown
+	[key: string]: unknown
+}
+
+let cachedIndex: PageIndexItem[] | null = null
+
+function normalizeKeywords(keywords: unknown): string[] {
 	if (!Array.isArray(keywords)) return []
 	return keywords
 		.filter(Boolean)
@@ -14,7 +31,7 @@ function normalizeKeywords(keywords) {
  * Build a searchable page index from VueRouter routes.
  * Returns: [{ path, title, keywords }]
  */
-export function getPageIndex() {
+export function getPageIndex(): PageIndexItem[] {
 	if (cachedIndex) return cachedIndex
 
 	const routes = (router && router.options && Array.isArray(router.options.routes)) ? router.options.routes : []
@@ -23,7 +40,7 @@ export function getPageIndex() {
 		.filter(r => r && typeof r.path === 'string')
 		.filter(r => r.path !== '/') // exclude login
 		.map(r => {
-			const meta = r.meta || {}
+			const meta = (r.meta || {}) as LoosePageMeta
 			const title = meta.title || r.name || r.path
 			return {
 				path: r.path,
