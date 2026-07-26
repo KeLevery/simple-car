@@ -1,6 +1,7 @@
 import {
   closeToast,
   showConfirmDialog,
+  showDialog,
   showFailToast,
   showLoadingToast,
   showNotify,
@@ -16,7 +17,8 @@ const toast = Object.assign(showToast, {
 })
 
 const dialog = {
-  confirm: showConfirmDialog
+  confirm: showConfirmDialog,
+  alert: showDialog
 }
 
 export function useVantCompat() {

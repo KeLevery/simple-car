@@ -57,7 +57,7 @@
 	</div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import {
 	userLogin,
 	userInfo
@@ -65,15 +65,19 @@ import {
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
+import { useAuthStore, type UserInfo } from '@/stores/auth'
+import { useCarStore, type CarItem } from '@/stores/car'
 
 defineOptions({ name: 'login' })
 const router = useRouter()
 const route = useRoute()
 const { toast, notify, dialog } = useVantCompat()
+const auth = useAuthStore()
+const car = useCarStore()
 const account = ref('')
 const password = ref('')
 function checkLogin() {
-			if (window.localStorage.getItem('hasLogin')) {
+			if (auth.isLoggedIn) {
 				router.push('/home')
 			}
 		}
@@ -95,7 +99,7 @@ function loginSubmit() {
 						// 后端返回：{ code, msg, data: { token } }
 							const token = res && res.data ? res.data.token : '';
 							if (token) {
-								window.localStorage.setItem('token', token);
+								auth.setToken(token);
 							}
 
 						getUserInfo();
@@ -118,16 +122,14 @@ function onForgotPassword() {
 function getUserInfo() {
 			userInfo().then(res => {
 				if (res.code == 200) {
-					const data = res.data || {}
-					const cars = Array.isArray(data.cars) ? data.cars : []
-					const user = data.user || {}
+					const data = res.data || { user: {}, cars: [] }
+					const cars = Array.isArray(data.cars) ? (data.cars as CarItem[]) : []
+					const user = (data.user || {}) as UserInfo
 
 					if (cars.length > 0) {
-						window.localStorage.setItem('carInfo', JSON.stringify(cars[0]));
-						window.localStorage.setItem('carList', JSON.stringify(cars));
+						car.setCars(cars);
 					}
-					window.localStorage.setItem('hasLogin', true);
-					window.localStorage.setItem('userInfo', JSON.stringify(user));
+					auth.setLoginUser(user);
 					toast.success('登录成功');
 					router.push('/home')
 				}
@@ -138,7 +140,7 @@ function getUserInfo() {
 		}
 checkLogin()
 		if (route.query.account) {
-			account.value = route.query.account
+			account.value = String(route.query.account)
 		}
 </script>
 

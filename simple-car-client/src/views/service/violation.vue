@@ -30,62 +30,82 @@
     </div>
 
     <div class="list-container">
-      <template v-if="list.length > 0">
-        <div v-for="item in list" :key="item.id" class="violation-card">
-          <div class="card-header">
-            <span class="type">{{ item.violationType }}</span>
-            <van-tag :type="item.status === 0 ? 'danger' : 'success'" round>
-              {{ item.status === 0 ? '未处理' : '已处理' }}
-            </van-tag>
+      <van-list
+        v-model:loading="loading"
+        :finished="finished"
+        finished-text="没有更多了"
+        @load="fetchData"
+      >
+        <template v-if="list.length > 0">
+          <div v-for="item in list" :key="item.id" class="violation-card">
+            <div class="card-header">
+              <span class="type">{{ item.violationType }}</span>
+              <van-tag :type="item.status === 0 ? 'danger' : 'success'" round>
+                {{ item.status === 0 ? '未处理' : '已处理' }}
+              </van-tag>
+            </div>
+            <div class="card-body">
+              <div class="info-item">
+                <van-icon name="location-o" />
+                <span>{{ item.location }}</span>
+              </div>
+              <div class="info-item">
+                <van-icon name="clock-o" />
+                <span>{{ item.violationTime }}</span>
+              </div>
+              <div class="fine-info">
+                <span class="fine">罚款：￥{{ item.fineAmount }}</span>
+                <span class="points">扣分：{{ item.deductPoints }}分</span>
+              </div>
+            </div>
           </div>
-          <div class="card-body">
-            <div class="info-item">
-              <van-icon name="location-o" />
-              <span>{{ item.location }}</span>
-            </div>
-            <div class="info-item">
-              <van-icon name="clock-o" />
-              <span>{{ item.violationTime }}</span>
-            </div>
-            <div class="fine-info">
-              <span class="fine">罚款：￥{{ item.fineAmount }}</span>
-              <span class="points">扣分：{{ item.deductPoints }}分</span>
-            </div>
-          </div>
-        </div>
-      </template>
-      <van-empty v-else description="恭喜，暂无违章记录" />
+        </template>
+        <van-empty v-else-if="finished" description="恭喜，暂无违章记录" />
+      </van-list>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
-import { violationList } from '@/api/violation'
+<script setup lang="ts">
+import { ref } from 'vue'
+import { violationList, type ViolationItem } from '@/api/violation'
 
-const list = ref([])
-const summary = ref({})
+const list = ref<ViolationItem[]>([])
+const summary = ref<{ total?: number; untreated?: number; totalFine?: number; totalPoints?: number }>({})
+const loading = ref(false)
+const finished = ref(false)
+const pageNum = ref(1)
+const pageSize = 10
 
 const fetchData = async () => {
+  loading.value = true
   try {
-    const res = await violationList()
+    const res = await violationList({ pageNum: pageNum.value, pageSize })
     if (res.code === 200) {
-      list.value = res.data.list
-      summary.value = {
-        total: res.data.total,
-        untreated: res.data.untreated,
-        totalFine: res.data.totalFine,
-        totalPoints: res.data.totalPoints
+      if (pageNum.value === 1) {
+        list.value = res.data.list
+        // 统计字段为全量口径，每页都带，取第一页即可
+        summary.value = {
+          total: res.data.total,
+          untreated: res.data.untreated,
+          totalFine: res.data.totalFine,
+          totalPoints: res.data.totalPoints
+        }
+      } else {
+        list.value = list.value.concat(res.data.list)
       }
+      finished.value = list.value.length >= res.data.total
+      pageNum.value += 1
+    } else {
+      finished.value = true
     }
   } catch (error) {
     console.error('Failed to fetch violations:', error)
+    finished.value = true
+  } finally {
+    loading.value = false
   }
 }
-
-onMounted(() => {
-  fetchData()
-})
 </script>
 
 <style scoped>

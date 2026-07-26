@@ -10,64 +10,84 @@
 		/>
 
 		<van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-			<div class="notice-list" v-if="list.length > 0">
-				<div 
-					v-for="item in list" 
-					:key="item.id" 
-					class="notice-item"
-				>
-					<div class="notice-header">
-						<div class="type-tag" :class="getTypeClass(item.type)">
-							{{ getTypeName(item.type) }}
+			<van-list
+				v-model:loading="loading"
+				:finished="finished"
+				finished-text="没有更多了"
+				@load="onLoad"
+			>
+				<div class="notice-list" v-if="list.length > 0">
+					<div
+						v-for="item in list"
+						:key="item.id"
+						class="notice-item"
+					>
+						<div class="notice-header">
+							<div class="type-tag" :class="getTypeClass(item.type)">
+								{{ getTypeName(item.type) }}
+							</div>
+							<div class="time">{{ item.createTime ? item.createTime.substring(0, 16) : '' }}</div>
 						</div>
-						<div class="time">{{ item.createTime ? item.createTime.substring(0, 16) : '' }}</div>
-					</div>
-					<div class="notice-body">
-						<div class="title">{{ item.title }}</div>
-						<div class="content">{{ item.content }}</div>
+						<div class="notice-body">
+							<div class="title">{{ item.title }}</div>
+							<div class="content">{{ item.content }}</div>
+						</div>
 					</div>
 				</div>
-			</div>
-			
-			<div class="empty-box" v-else-if="!loading">
-				<van-empty description="暂无消息通知" />
-			</div>
+
+				<div class="empty-box" v-else-if="!loading && finished">
+					<van-empty description="暂无消息通知" />
+				</div>
+			</van-list>
 		</van-pull-refresh>
 	</div>
 </template>
 
-<script setup>
-import { noticeList } from '@/api/notice'
+<script setup lang="ts">
+import { noticeList, type NoticeItem } from '@/api/notice'
 import { ref } from 'vue'
 
-const list = ref([])
+const list = ref<NoticeItem[]>([])
 const loading = ref(false)
 const refreshing = ref(false)
+const finished = ref(false)
+const pageNum = ref(1)
+const pageSize = 10
 function onLoad() {
 			loading.value = true
-			noticeList().then(res => {
+			noticeList({ pageNum: pageNum.value, pageSize }).then(res => {
 				if (res.code === 200) {
-					list.value = res.data
+					if (pageNum.value === 1) {
+						list.value = res.rows
+					} else {
+						list.value = list.value.concat(res.rows)
+					}
+					finished.value = list.value.length >= res.total
+					pageNum.value += 1
+				} else {
+					finished.value = true
 				}
 				loading.value = false
 				refreshing.value = false
 			}).catch(() => {
+				finished.value = true
 				loading.value = false
 				refreshing.value = false
 			})
 		}
 function onRefresh() {
+			pageNum.value = 1
+			finished.value = false
 			onLoad()
 		}
-function getTypeName(type) {
-			const names = { 1: '系统', 2: '维保', 3: '充电' }
-			return names[type] || '通知'
+function getTypeName(type: unknown) {
+			const names: Record<number, string> = { 1: '系统', 2: '维保', 3: '充电' }
+			return names[Number(type)] || '通知'
 		}
-function getTypeClass(type) {
-			const classes = { 1: 'sys', 2: 'service', 3: 'charge' }
-			return classes[type] || ''
+function getTypeClass(type: unknown) {
+			const classes: Record<number, string> = { 1: 'sys', 2: 'service', 3: 'charge' }
+			return classes[Number(type)] || ''
 		}
-onLoad()
 </script>
 
 <style lang="scss" scoped>

@@ -11,23 +11,30 @@
 
 		<van-tabs v-model:active="activeTab" sticky offset-top="46" color="#00d4ff" background="#111827">
 			<van-tab title="全部订单">
-				<div class="order-list" v-if="orders.length > 0">
-					<div v-for="order in orders" :key="order.uid || order.id" class="order-card">
-						<div class="order-header">
-							<span class="type">{{ order.type }}</span>
-							<span class="status" :class="getStatusClass(order.status)">{{ order.status }}</span>
-						</div>
-						<div class="order-body">
-							<div class="detail">{{ order.detail }}</div>
-							<div class="amount">￥{{ order.amount }}</div>
-						</div>
-						<div class="order-footer">
-							<span class="time">{{ formatTime(order.time) }}</span>
-							<van-button size="mini" round plain type="info" @click="showDetail(order)">查看详情</van-button>
+				<van-list
+					v-model:loading="loading"
+					:finished="finished"
+					finished-text="没有更多了"
+					@load="fetchOrders"
+				>
+					<div class="order-list" v-if="orders.length > 0">
+						<div v-for="order in orders" :key="order.uid || order.id" class="order-card">
+							<div class="order-header">
+								<span class="type">{{ order.type }}</span>
+								<span class="status" :class="getStatusClass(order.status)">{{ order.status }}</span>
+							</div>
+							<div class="order-body">
+								<div class="detail">{{ order.detail }}</div>
+								<div class="amount">￥{{ order.amount }}</div>
+							</div>
+							<div class="order-footer">
+								<span class="time">{{ formatTime(order.time) }}</span>
+								<van-button size="mini" round plain @click="showDetail(order)">查看详情</van-button>
+							</div>
 						</div>
 					</div>
-				</div>
-				<van-empty v-else description="暂无订单记录" />
+					<van-empty v-else-if="finished" description="暂无订单记录" />
+				</van-list>
 			</van-tab>
 			<van-tab title="进行中">
 				<van-empty description="暂无进行中的订单" />
@@ -45,7 +52,7 @@
 						</div>
 						<div class="order-footer">
 							<span class="time">{{ formatTime(order.time) }}</span>
-							<van-button size="mini" round plain type="info" @click="showDetail(order)">查看详情</van-button>
+							<van-button size="mini" round plain @click="showDetail(order)">查看详情</van-button>
 						</div>
 					</div>
 				</div>
@@ -87,36 +94,55 @@
 	</div>
 </template>
 
-<script setup>
-import { orderList } from '@/api/order'
+<script setup lang="ts">
+import { orderList, type OrderItem } from '@/api/order'
 import { computed, ref } from 'vue'
 
 const activeTab = ref(0)
-const orders = ref([])
-const currentOrder = ref(null)
+const orders = ref<OrderItem[]>([])
+const currentOrder = ref<OrderItem | null>(null)
 const showDetailPopup = ref(false)
+const loading = ref(false)
+const finished = ref(false)
+const pageNum = ref(1)
+const pageSize = 10
+// 已知局限：tab 过滤只作用于已加载页；如需精确需服务端加 status 参数
 const completedOrders = computed(() => {
 			return orders.value.filter(o => o.status === '已支付' || o.status === '已完成');
 		})
 async function fetchOrders() {
-			const res = await orderList();
-			if (res.code === 200) {
-				orders.value = res.data;
+			loading.value = true
+			try {
+				const res = await orderList({ pageNum: pageNum.value, pageSize });
+				if (res.code === 200) {
+					if (pageNum.value === 1) {
+						orders.value = res.rows
+					} else {
+						orders.value = orders.value.concat(res.rows)
+					}
+					finished.value = orders.value.length >= res.total
+					pageNum.value += 1
+				} else {
+					finished.value = true
+				}
+			} catch {
+				finished.value = true
+			} finally {
+				loading.value = false
 			}
 		}
-function showDetail(order) {
+function showDetail(order: OrderItem) {
 			currentOrder.value = order;
 			showDetailPopup.value = true;
 		}
-function getStatusClass(status) {
+function getStatusClass(status: string) {
 			if (status === '已支付' || status === '已完成') return 'success';
 			if (status === '待支付') return 'warning';
 			return 'info';
 		}
-function formatTime(time) {
+function formatTime(time: string) {
 			return time ? time.replace('T', ' ').substring(0, 16) : '';
 		}
-fetchOrders();
 </script>
 
 <style lang="scss" scoped>

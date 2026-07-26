@@ -30,8 +30,14 @@
 			<!-- 社区分类 -->
 			<van-tabs v-model:active="activeTab" sticky offset-top="0" color="var(--accent)" line-width="20" background="transparent" class="comm-tabs">
 				<van-tab title="精选">
+					<van-list
+						v-model:loading="feedsLoading"
+						:finished="feedsFinished"
+						finished-text="没有更多了"
+						@load="fetchPosts"
+					>
 					<div class="feed-list">
-						<div v-for="(post, index) in feeds" :key="index" class="post-card">
+						<div v-for="post in feeds" :key="post.id" class="post-card">
 							<div class="post-header" @click="openPostDetail(post)">
 								<div class="avatar-wrapper">
 									<van-image round width="38" height="38" :src="post.avatar" />
@@ -64,6 +70,7 @@
 							</div>
 						</div>
 					</div>
+					</van-list>
 				</van-tab>
 				<van-tab title="广场">
 					<van-empty image="network" description="广场动态正在加载中..." />
@@ -114,7 +121,7 @@
 						</div>
 
 						<!-- Comments -->
-						<van-loading v-if="commentsLoading" size="24px" vertical>加载中...</van-loading>
+						<van-loading v-if="commentsLoading && comments.length === 0" size="24px" vertical>加载中...</van-loading>
 						<div v-else>
 							<div v-if="comments.length" class="comment-list">
 								<div v-for="c in comments" :key="c.id" class="comment-item">
@@ -128,6 +135,10 @@
 										</div>
 										<div class="comment-item__text">{{ c.content }}</div>
 									</div>
+								</div>
+								<div v-if="!commentsFinished" class="comment-load-more" @click="loadMoreComments">
+									<van-loading v-if="commentsLoading" size="16px" />
+									<span v-else>加载更多评论</span>
 								</div>
 							</div>
 							<van-empty v-else description="暂无评论，快来抢沙发" />
@@ -147,11 +158,27 @@
 		</div>
 	</template>
 
-	<script setup>
+	<script setup lang="ts">
 import Tabbar from "@/components/Tabbar.vue"
-import { postList, toggleLike as toggleLikeApi, createPost, commentList, createComment } from '@/api/community'
+import { postList, toggleLike as toggleLikeApi, createPost, commentList, createComment, type CommentItem } from '@/api/community'
 import { ref } from 'vue'
 import { useVantCompat } from '@/composables/useVantCompat'
+
+// 页面内 feed 视图模型：接口 PostItem 加工后的展示字段
+interface FeedPost {
+	id: number
+	userId: number
+	content: string
+	images: string[]
+	avatar: string
+	nickname?: string
+	time: string
+	share?: number
+	comment: number
+	like: number
+	isLiked?: boolean
+	[key: string]: unknown
+}
 
 const { toast, notify, dialog } = useVantCompat()
 const activeTab = ref(0)
@@ -160,32 +187,60 @@ const banners = ref([
 					{ title: '春日出游计划：分享你的自驾路线', tag: '春日自驾', color: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', icon: 'flower-o' },
 					{ title: 'OTA升级体验报告：新功能好用吗？', tag: '系统升级', color: 'linear-gradient(135deg, #fff7ed, #ffedd5)', icon: 'upgrade' }
 				])
-const feeds = ref([])
+const feeds = ref<FeedPost[]>([])
+const feedsLoading = ref(false)
+const feedsFinished = ref(false)
+const feedsPageNum = ref(1)
+const pageSize = 10
 const showPublish = ref(false)
 const publishContent = ref('')
 const publishing = ref(false)
 const showComments = ref(false)
-const activePost = ref(null)
-const comments = ref([])
+const activePost = ref<FeedPost | null>(null)
+const comments = ref<CommentItem[]>([])
 const commentsLoading = ref(false)
+const commentsFinished = ref(true)
+const commentsPageNum = ref(1)
+const commentsTotal = ref(0)
 const commentDraft = ref('')
 const commentSubmitting = ref(false)
 const defaultAvatar = ref('https://img01.yzcdn.cn/vant/cat.jpeg')
 async function fetchPosts() {
-				const res = await postList();
-				if (res.code === 200) {
-					feeds.value = (res.data || []).map(item => ({
-						...item,
-						images: item.images ? item.images.split(',') : [],
-						avatar: item.avatar || 'https://img01.yzcdn.cn/vant/cat.jpeg',
-						time: '刚刚',
-						share: item.shareCount,
-						comment: item.commentCount,
-						like: item.likeCount
-					}));
+				feedsLoading.value = true
+				try {
+					const res = await postList({ pageNum: feedsPageNum.value, pageSize });
+					if (res.code === 200) {
+						const mapped: FeedPost[] = (res.rows || []).map(item => ({
+							...item,
+							images: item.images ? String(item.images).split(',') : [],
+							avatar: item.avatar || 'https://img01.yzcdn.cn/vant/cat.jpeg',
+							time: '刚刚',
+							share: item.shareCount,
+							comment: item.commentCount,
+							like: item.likeCount
+						}));
+						if (feedsPageNum.value === 1) {
+							feeds.value = mapped
+						} else {
+							feeds.value = feeds.value.concat(mapped)
+						}
+						feedsFinished.value = feeds.value.length >= res.total
+						feedsPageNum.value += 1
+					} else {
+						feedsFinished.value = true
+					}
+				} catch {
+					feedsFinished.value = true
+				} finally {
+					feedsLoading.value = false
 				}
 			}
-async function toggleLike(post) {
+function resetFeeds() {
+				feedsPageNum.value = 1
+				feedsFinished.value = false
+				return fetchPosts()
+			}
+async function toggleLike(post: FeedPost) {
 				const res = await toggleLikeApi(post.id);
 				if (res.code === 200) {
 					post.isLiked = !post.isLiked;
@@ -204,7 +259,7 @@ async function publishPost() {
 						toast.success('发布成功');
 						showPublish.value = false;
 						publishContent.value = '';
-						fetchPosts();
+						resetFeeds();
 					}
 				} catch (error) {
 					console.error(error);
@@ -212,30 +267,48 @@ async function publishPost() {
 					publishing.value = false;
 				}
 			}
-function sharePost() {
+function sharePost(_post?: FeedPost) {
 				toast('分享功能开发中');
 			}
-function formatCommentTime(t) {
+function formatCommentTime(t: unknown) {
 				if (!t) return '';
 				const s = String(t).replace('T', ' ');
 				return s.length >= 16 ? s.slice(0, 16) : s;
 			}
-function openPostDetail(post) {
+function openPostDetail(post: FeedPost) {
 				openComments(post);
 			}
-async function openComments(post) {
-				activePost.value = post;
-				showComments.value = true;
+async function fetchComments(postId: number) {
 				commentsLoading.value = true;
-				comments.value = [];
 				try {
-					const res = await commentList(post.id);
+					const res = await commentList(postId, { pageNum: commentsPageNum.value, pageSize });
 					if (res.code === 200) {
-						comments.value = res.data || [];
+						if (commentsPageNum.value === 1) {
+							comments.value = res.rows || []
+						} else {
+							comments.value = comments.value.concat(res.rows || [])
+						}
+						commentsTotal.value = res.total
+						commentsFinished.value = comments.value.length >= res.total
+						commentsPageNum.value += 1
+					} else {
+						commentsFinished.value = true
 					}
 				} finally {
 					commentsLoading.value = false;
 				}
+			}
+async function openComments(post: FeedPost) {
+				activePost.value = post;
+				showComments.value = true;
+				comments.value = [];
+				commentsPageNum.value = 1;
+				commentsFinished.value = true;
+				await fetchComments(post.id);
+			}
+function loadMoreComments() {
+				if (commentsLoading.value || !activePost.value) return;
+				fetchComments(activePost.value.id);
 			}
 async function submitComment() {
 				if (!activePost.value) return;
@@ -250,7 +323,10 @@ async function submitComment() {
 					if (res.code === 200) {
 						commentDraft.value = '';
 						toast.success('评论成功');
-						await openComments(activePost.value);
+						// 重置评论分页，重拉第一页
+						comments.value = [];
+						commentsPageNum.value = 1;
+						await fetchComments(activePost.value.id);
 						if (typeof activePost.value.comment === 'number') {
 							activePost.value.comment++;
 						}
@@ -259,7 +335,6 @@ async function submitComment() {
 					commentSubmitting.value = false;
 				}
 			}
-fetchPosts();
 </script>
 
 	<style lang="scss" scoped>
@@ -706,6 +781,16 @@ fetchPosts();
 		color: var(--text-secondary);
 		line-height: 1.5;
 		word-break: break-word;
+	}
+
+	.comment-load-more {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 10px 0 4px;
+		font-size: 13px;
+		color: var(--accent);
+		cursor: pointer;
 	}
 
 	/* ===== Animations ===== */
