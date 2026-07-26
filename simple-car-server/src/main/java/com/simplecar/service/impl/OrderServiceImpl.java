@@ -26,8 +26,13 @@ public class OrderServiceImpl implements OrderService {
      * UNION ALL 自定义 SQL + 数据库分页。
      */
     @Override
-    public PagedData<Map<String, Object>> getUserOrders(Long userId, Integer pageNum, Integer pageSize) {
+    public PagedData<Map<String, Object>> getUserOrders(Long userId, String status, Integer pageNum, Integer pageSize) {
         List<Map<String, Object>> allOrders = loadAllOrders(userId);
+        if (status != null && !status.isBlank()) {
+            allOrders = allOrders.stream()
+                    .filter(order -> status.equals(order.get("status")))
+                    .collect(Collectors.toList());
+        }
         int num = pageNum == null || pageNum < 1 ? 1 : pageNum;
         int size = pageSize == null ? 10 : Math.max(1, Math.min(pageSize, 50));
         int total = allOrders.size();

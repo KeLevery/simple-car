@@ -10,8 +10,8 @@ export interface OrderItem {
   detail: string
 }
 
-// 获取订单列表（分页）
-export function orderList(params?: { pageNum?: number; pageSize?: number }) {
+// 获取订单列表（分页，可按状态过滤）
+export function orderList(params?: { status?: string; pageNum?: number; pageSize?: number }) {
   return request({
     url: '/order/list',
     method: 'get',

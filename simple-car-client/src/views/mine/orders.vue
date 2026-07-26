@@ -40,22 +40,30 @@
 				<van-empty description="暂无进行中的订单" />
 			</van-tab>
 			<van-tab title="已完成">
-				<div class="order-list">
-					<div v-for="order in completedOrders" :key="order.uid || order.id" class="order-card">
-						<div class="order-header">
-							<span class="type">{{ order.type }}</span>
-							<span class="status success">{{ order.status }}</span>
-						</div>
-						<div class="order-body">
-							<div class="detail">{{ order.detail }}</div>
-							<div class="amount">￥{{ order.amount }}</div>
-						</div>
-						<div class="order-footer">
-							<span class="time">{{ formatTime(order.time) }}</span>
-							<van-button size="mini" round plain @click="showDetail(order)">查看详情</van-button>
+				<van-list
+					v-model:loading="completedLoading"
+					:finished="completedFinished"
+					finished-text="没有更多了"
+					@load="fetchCompletedOrders"
+				>
+					<div class="order-list" v-if="completedOrders.length > 0">
+						<div v-for="order in completedOrders" :key="order.uid || order.id" class="order-card">
+							<div class="order-header">
+								<span class="type">{{ order.type }}</span>
+								<span class="status success">{{ order.status }}</span>
+							</div>
+							<div class="order-body">
+								<div class="detail">{{ order.detail }}</div>
+								<div class="amount">￥{{ order.amount }}</div>
+							</div>
+							<div class="order-footer">
+								<span class="time">{{ formatTime(order.time) }}</span>
+								<van-button size="mini" round plain @click="showDetail(order)">查看详情</van-button>
+							</div>
 						</div>
 					</div>
-				</div>
+					<van-empty v-else-if="completedFinished" description="暂无已完成的订单" />
+				</van-list>
 			</van-tab>
 		</van-tabs>
 		
@@ -96,7 +104,7 @@
 
 <script setup lang="ts">
 import { orderList, type OrderItem } from '@/api/order'
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 
 const activeTab = ref(0)
 const orders = ref<OrderItem[]>([])
@@ -106,10 +114,11 @@ const loading = ref(false)
 const finished = ref(false)
 const pageNum = ref(1)
 const pageSize = 10
-// 已知局限：tab 过滤只作用于已加载页；如需精确需服务端加 status 参数
-const completedOrders = computed(() => {
-			return orders.value.filter(o => o.status === '已支付' || o.status === '已完成');
-		})
+// 已完成 tab：独立分页请求，服务端按 status 过滤（后端已支付即完成态）
+const completedOrders = ref<OrderItem[]>([])
+const completedLoading = ref(false)
+const completedFinished = ref(false)
+const completedPageNum = ref(1)
 async function fetchOrders() {
 			loading.value = true
 			try {
@@ -129,6 +138,27 @@ async function fetchOrders() {
 				finished.value = true
 			} finally {
 				loading.value = false
+			}
+		}
+async function fetchCompletedOrders() {
+			completedLoading.value = true
+			try {
+				const res = await orderList({ status: '已支付', pageNum: completedPageNum.value, pageSize });
+				if (res.code === 200) {
+					if (completedPageNum.value === 1) {
+						completedOrders.value = res.rows
+					} else {
+						completedOrders.value = completedOrders.value.concat(res.rows)
+					}
+					completedFinished.value = completedOrders.value.length >= res.total
+					completedPageNum.value += 1
+				} else {
+					completedFinished.value = true
+				}
+			} catch {
+				completedFinished.value = true
+			} finally {
+				completedLoading.value = false
 			}
 		}
 function showDetail(order: OrderItem) {

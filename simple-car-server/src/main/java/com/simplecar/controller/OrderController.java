@@ -23,6 +23,7 @@ public class OrderController {
     @Operation(summary = "获取用户所有订单")
     @GetMapping("/list")
     public ApiResponse<?> getOrders(
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize
     ) {
@@ -30,7 +31,7 @@ public class OrderController {
         if (user == null) {
             return ApiResponse.error(401, "请先登录");
         }
-        PagedData<Map<String, Object>> page = orderService.getUserOrders(user.getId(), pageNum, pageSize);
+        PagedData<Map<String, Object>> page = orderService.getUserOrders(user.getId(), status, pageNum, pageSize);
         return PageResponse.success(page.rows(), page.total());
     }
 }
