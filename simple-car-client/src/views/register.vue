@@ -110,12 +110,10 @@ function registerSubmit() {
 		if (res.code == 200) {
 			toast.success('注册成功，请登录')
 			router.push({ path: '/', query: { account: phone.value } })
-		} else {
-			toast.fail(res.msg || '注册失败')
 		}
 	}).catch(() => {
 		loading.value = false
-		toast.fail('注册失败，请稍后重试')
+		// 业务/网络错误已由 request 拦截器提示
 	})
 }
 function goLogin() {

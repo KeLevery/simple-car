@@ -99,11 +99,9 @@ async function handleRescue() {
           toast.success('救援请求已发送，请保持电话畅通')
           form.value.description = '' // 清除故障描述
           fetchHistory()
-        } else {
-          toast.fail(res.message || '发送失败')
         }
       } catch (error) {
-        toast.fail('网络错误，请稍后再试')
+        // 业务/网络错误已由 request 拦截器提示
       } finally {
         loading.value = false
       }

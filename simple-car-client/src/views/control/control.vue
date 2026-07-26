@@ -161,11 +161,9 @@ function executeControl(item, index) {
                 if (res.code == 200) {
                     activeControls.value[index] = true;
                     toast.success(item.label + '成功');
-                } else {
-                    toast.fail(res.msg || '操作失败');
                 }
             }).catch(() => {
-                toast.fail('网络异常');
+                // 业务/网络错误已由 request 拦截器提示
             });
         }
 function executeQuick(item, index) {

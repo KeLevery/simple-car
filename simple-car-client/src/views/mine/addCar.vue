@@ -146,12 +146,10 @@ async function onSubmit() {
 					setTimeout(() => {
 						router.back();
 					}, 1000);
-				} else {
-					toast.fail(res.msg || '添加失败');
 				}
 			} catch (e) {
 				console.error('Failed to add car:', e);
-				toast.fail('网络异常，请稍后重试');
+				// 业务/网络错误已由 request 拦截器提示
 			} finally {
 				submitting.value = false;
 			}

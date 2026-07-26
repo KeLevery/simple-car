@@ -8,11 +8,46 @@ axios.defaults.headers['Content-Type'] = 'application/json;charset=utf-8'
 // 创建axios实例
 const service = axios.create({
   // axios中请求配置有baseURL选项，表示请求URL公共部分
-  // baseURL: "http://localhost:8080",
   baseURL: getBaseUrl(),
   // 超时
-  timeout: 600000
+  timeout: 30000
 })
+
+// 清除登录态（供 request 拦截器与退出登录复用）
+export function clearAuth() {
+  window.localStorage.removeItem('token');
+  window.localStorage.removeItem('hasLogin');
+  window.localStorage.removeItem('userInfo');
+  window.localStorage.removeItem('carInfo');
+  window.localStorage.removeItem('carList');
+}
+
+// 401 统一处理：提示后清除登录态并跳转登录页
+let unauthorizedDialogShowing = false
+function handleUnauthorized(message) {
+  // 已在登录页则不弹窗（避免阻断登录流程）
+  if (router.currentRoute && router.currentRoute.value.path === '/') {
+    return
+  }
+  if (unauthorizedDialogShowing) {
+    return
+  }
+  unauthorizedDialogShowing = true
+  showConfirmDialog({
+    title: '系统提示',
+    message: message || '登录状态已过期，请重新登录',
+    showCancelButton: false,
+    confirmButtonText: '确定'
+  }).then(() => {
+    clearAuth();
+    router.push('/').catch(() => {})
+  }).catch(() => {
+    // on cancel
+  }).finally(() => {
+    unauthorizedDialogShowing = false
+  });
+}
+
 // request拦截器
 service.interceptors.request.use(config => {
   let token = window.localStorage.getItem('token');
@@ -24,64 +59,32 @@ service.interceptors.request.use(config => {
   return Promise.reject(error)
 })
 
-// 响应拦截器
+// 响应拦截器：业务码非 200 统一提示并 reject，调用方只需处理成功分支
 service.interceptors.response.use(res => {
   // 未设置状态码则默认成功状态
   const code = res.data.code || 200;
+  if (code === 200) {
+    return res.data
+  }
   // 获取错误信息
   const msg = errorCode[code] || res.data.msg || errorCode['default']
   if (code === 401) {
-    // 如果已经在登录页，不弹窗（避免阻断登录流程）
-    if (router.currentRoute && router.currentRoute.value.path === '/') {
-      return res.data
-    }
-    showConfirmDialog({
-      title: '系统提示',
-      message: '登录状态已过期，请重新登录',
-      showCancelButton: false,
-      confirmButtonText: '确定'
-    }).then(() => {
-      // on confirm - 只清除项目相关的 localStorage 键
-      window.localStorage.removeItem('token');
-      window.localStorage.removeItem('hasLogin');
-      window.localStorage.removeItem('userInfo');
-      window.localStorage.removeItem('carInfo');
-      window.localStorage.removeItem('carList');
-      const to = '/'
-      if (router.currentRoute && router.currentRoute.value.path === to) return
-      router.push(to).catch(() => {})
-    }).catch(() => {
-      // on cancel
-    });
-    return res.data
+    handleUnauthorized('登录状态已过期，请重新登录')
   } else {
-    return res.data
+    showFailToast(msg)
   }
+  return Promise.reject(new Error(msg))
 },
   error => {
     const status = error.response && error.response.status
     const data = error.response && error.response.data
     if (status === 401 || (data && data.code === 401)) {
-      if (!(router.currentRoute && router.currentRoute.value.path === '/')) {
-        showConfirmDialog({
-          title: '系统提示',
-          message: (data && data.msg) || '登录状态已过期，请重新登录',
-          showCancelButton: false,
-          confirmButtonText: '确定'
-        }).then(() => {
-          window.localStorage.removeItem('token');
-          window.localStorage.removeItem('hasLogin');
-          window.localStorage.removeItem('userInfo');
-          window.localStorage.removeItem('carInfo');
-          window.localStorage.removeItem('carList');
-          router.push('/').catch(() => {})
-        }).catch(() => {});
-      }
-      return Promise.resolve(data || { code: 401, msg: '登录状态已过期' })
+      handleUnauthorized((data && data.msg) || '登录状态已过期，请重新登录')
+      return Promise.reject(error)
     }
     if (status === 403 || (data && data.code === 403)) {
       showFailToast((data && data.msg) || '无访问权限');
-      return Promise.resolve(data || { code: 403, msg: '无访问权限' })
+      return Promise.reject(error)
     }
     let { message } = error;
     if (message == "Network Error") {

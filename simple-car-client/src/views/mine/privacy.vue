@@ -92,11 +92,7 @@ async function saveSettings() {
 			} catch (e) {
 				toast.clear()
 				console.error(e)
-				localStorage.setItem('privacy_settings', JSON.stringify(settings.value))
-				toast.success('保存成功')
-				setTimeout(() => {
-					router.back()
-				}, 700)
+				toast.fail('保存失败，请重试')
 			} finally {
 				loading.value = false
 			}

@@ -64,17 +64,15 @@ function goBack() {
 function payCmf() {
             paymentUpdate({
                 id: payId.value,
-                price: price.value,
-                maintenanceAppointmentId: orderId.value,
                 status: 1
             }).then(res => {
                 if(res.code == 200) {
                     notify({type: 'success',message: '支付成功！'});
                     router.push({path: '/home'})
-                } else {
-                    toast.fail('支付失败，请重试！');
                 }
-            })            
+            }).catch(() => {
+                // 业务/网络错误已由 request 拦截器提示
+            })
         }
 function noPay() {
             dialogShow.value = true;

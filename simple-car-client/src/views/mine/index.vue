@@ -139,6 +139,7 @@ import Tabbar from "@/components/Tabbar.vue"
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
+import { clearAuth } from '@/util/request'
 
 const router = useRouter()
 const route = useRoute()
@@ -194,11 +195,7 @@ function logout() {
 				confirmButtonText: '确认退出',
 				confirmButtonColor: '#2b6cb0'
 			}).then(() => {
-				window.localStorage.removeItem('token');
-				window.localStorage.removeItem('hasLogin');
-				window.localStorage.removeItem('userInfo');
-				window.localStorage.removeItem('carInfo');
-				window.localStorage.removeItem('carList');
+				clearAuth();
 				router.push('/');
 			}).catch(() => {});
 		}

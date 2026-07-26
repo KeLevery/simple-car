@@ -90,8 +90,6 @@ async function handleSave() {
           setTimeout(() => {
             router.back()
           }, 1000)
-        } else {
-          toast.fail(res.msg || '修改失败')
         }
       } catch (error) {
         console.error(error)

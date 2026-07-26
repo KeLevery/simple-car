@@ -99,9 +99,9 @@ function loginSubmit() {
 							}
 
 						getUserInfo();
-					} else {
-						toast.fail(res.msg || '登录失败');
 					}
+				}).catch(() => {
+					// 业务/网络错误已由 request 拦截器提示
 				})
 			}
 		}
@@ -130,12 +130,10 @@ function getUserInfo() {
 					window.localStorage.setItem('userInfo', JSON.stringify(user));
 					toast.success('登录成功');
 					router.push('/home')
-				} else {
-					toast.fail(res.msg || '获取用户信息失败');
 				}
 			}).catch((err) => {
 				console.error('getUserInfo error:', err);
-				toast.fail('获取用户信息失败，请重试');
+				// 业务/网络错误已由 request 拦截器提示
 			})
 		}
 checkLogin()
