@@ -10,7 +10,6 @@ export function carInfo(id) {
 
 // 远程车辆控制
 export function doCarStart(data) {
-  console.log(data)
     return request({
       url: '/bs-vehicle-owner/rc/doCarStart',
       method: 'post',

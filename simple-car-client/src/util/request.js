@@ -59,7 +59,6 @@ service.interceptors.response.use(res => {
   }
 },
   error => {
-    console.log('err' + error)
     const status = error.response && error.response.status
     const data = error.response && error.response.data
     if (status === 401 || (data && data.code === 401)) {

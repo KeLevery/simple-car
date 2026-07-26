@@ -174,15 +174,7 @@ function gotoHistory() {
 					path: '/service/record'
 				});
 			}
-function onSubmit(values) {
-				console.log('submit', values);
-			}
-function typeChange(e) {
-				console.log(e);
-				mtType.value = e;
-			}
 function cityConfirm(e) {
-				console.log(e);
 				city.value = e[1].name;
 				cityId.value = e[1].code;
 				showCity.value = false;
@@ -195,7 +187,6 @@ function getStationList() {
 				stationList({
 					cityId: cityId.value
 				}).then(res => {
-					console.log(res);
 					stationData.value = res.rows;
 					let stations = []
 					res.rows.forEach(item => {
@@ -221,13 +212,11 @@ function chooseStation() {
 				}
 			}
 function stationConfirm(e, index) {
-				console.log(e);
 				station.value = e;
 				stationId.value = stationData.value[index].id;
 				showStation.value = false;
 			}
 function dateConfirm(e) {
-				console.log(e);
 				appointDate.value = `${e.getFullYear()}-${e.getMonth()+1}-${e.getDate()}`;
 				showDate.value = false;
 			}
@@ -261,7 +250,6 @@ function getCarList() {
 				}
 				let userId = JSON.parse(userInfoStr).userId;
 				carInfoList(userId).then(res => {
-					console.log(res);
 					carData.value = res.data;
 					let columns = [];
 					res.data.forEach(item => {

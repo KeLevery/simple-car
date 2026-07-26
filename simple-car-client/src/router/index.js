@@ -115,12 +115,6 @@ const routes = [
 		meta: { title: '社区', keywords: ['论坛'] }
 	},
 	{
-		path: '/demo',
-		name: 'demo',
-		component: () => import('@/views/service/demo.vue'),
-		meta: { title: '演示', keywords: ['demo'] }
-	},
-	{
 		path: '/service/violation',
 		name: 'service-violation',
 		component: () => import('@/views/service/violation.vue'),

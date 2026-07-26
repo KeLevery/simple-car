@@ -55,7 +55,6 @@
 
 <script setup>
 import { createRescue, rescueList } from '@/api/rescue'
-import dayjs from 'dayjs'
 import { ref } from 'vue'
 import { useVantCompat } from '@/composables/useVantCompat'
 
