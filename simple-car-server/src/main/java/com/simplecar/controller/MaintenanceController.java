@@ -2,15 +2,16 @@ package com.simplecar.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.simplecar.component.OwnershipValidator;
-import com.simplecar.result.ApiResponse;
-import com.simplecar.result.PageResponse;
 import com.simplecar.model.dto.AppointmentRequest;
 import com.simplecar.model.entity.MaintenanceAppointment;
 import com.simplecar.model.entity.MaintenancePlan;
 import com.simplecar.model.entity.ServiceStation;
+import com.simplecar.result.ApiResponse;
+import com.simplecar.result.PageResponse;
 import com.simplecar.service.MaintenanceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,12 +33,8 @@ public class MaintenanceController {
 
     @Operation(summary = "新增维保预约")
     @PostMapping("/bs-vehicle-owner/maintenance-appointment")
-    public ApiResponse<Map<String, Object>> createAppointment(@RequestBody AppointmentRequest request) {
-        try {
-            return ApiResponse.success(maintenanceService.createAppointment(request));
-        } catch (RuntimeException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+    public ApiResponse<Map<String, Object>> createAppointment(@Valid @RequestBody AppointmentRequest request) {
+        return ApiResponse.success(maintenanceService.createAppointment(request));
     }
 
     @Operation(summary = "维保记录分页查询")
@@ -46,14 +43,7 @@ public class MaintenanceController {
             @RequestParam Long carId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
-        try {
-            ownershipValidator.requireCarOwnership(carId);
-        } catch (RuntimeException e) {
-            PageResponse<MaintenanceAppointment> response = new PageResponse<>();
-            response.setCode(500);
-            response.setMsg(e.getMessage());
-            return response;
-        }
+        ownershipValidator.requireCarOwnership(carId);
         Page<MaintenanceAppointment> page = maintenanceService.getAppointmentPage(carId, pageNum, pageSize);
         return PageResponse.success(page.getRecords(), page.getTotal());
     }
@@ -73,11 +63,7 @@ public class MaintenanceController {
     public ApiResponse<Boolean> updatePayStatus(@RequestBody Map<String, Object> params) {
         Long payId = Long.valueOf(params.get("id").toString());
         Integer status = Integer.valueOf(params.get("status").toString());
-        try {
-            maintenanceService.updatePayStatus(payId, status);
-            return ApiResponse.success(true);
-        } catch (RuntimeException e) {
-            return ApiResponse.error(e.getMessage());
-        }
+        maintenanceService.updatePayStatus(payId, status);
+        return ApiResponse.success(true);
     }
 }

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.simplecar.mapper.AdminRoleMapper;
 import com.simplecar.mapper.AdminUserMapper;
 import com.simplecar.mapper.AdminUserRoleMapper;
+import com.simplecar.exception.BusinessException;
 import com.simplecar.model.dto.LoginRequest;
 import com.simplecar.model.entity.AdminRole;
 import com.simplecar.model.entity.AdminUser;
@@ -35,18 +36,18 @@ public class AdminAuthServiceImpl implements AdminAuthService {
     public Map<String, Object> login(LoginRequest loginRequest) {
         AdminUser adminUser = findByUsername(loginRequest.getUsername());
         if (adminUser == null) {
-            throw new RuntimeException("后台账号不存在");
+            throw new BusinessException(401, "后台账号或密码错误");
         }
         if (adminUser.getStatus() == null || adminUser.getStatus() == 0) {
-            throw new RuntimeException("后台账号已禁用");
+            throw new BusinessException(401, "后台账号已禁用");
         }
         if (!matchesPassword(loginRequest.getPassword(), adminUser.getPassword())) {
-            throw new RuntimeException("后台账号或密码错误");
+            throw new BusinessException(401, "后台账号或密码错误");
         }
 
         List<String> roles = loadRoleCodes(adminUser.getId());
         if (roles.isEmpty()) {
-            throw new RuntimeException("后台账号未分配角色");
+            throw new BusinessException(401, "后台账号未分配角色");
         }
 
         AdminUser update = new AdminUser();

@@ -26,7 +26,7 @@ public class UploadServiceImpl implements UploadService {
     @Value("${upload.path}")
     private String uploadPath;
 
-    public Map<String, Object> upload(MultipartFile file) throws IOException {
+    public Map<String, Object> upload(MultipartFile file) {
         File pathFile = new File(uploadPath);
         if (!pathFile.exists()) {
             pathFile.mkdirs();
@@ -43,7 +43,11 @@ public class UploadServiceImpl implements UploadService {
 
         String fileName = UUID.randomUUID().toString() + extension;
         Path path = Paths.get(uploadPath + fileName);
-        Files.write(path, file.getBytes());
+        try {
+            Files.write(path, file.getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException("文件上传失败");
+        }
 
         String relativeUrl = "/uploads/" + fileName;
         Map<String, Object> data = new HashMap<>();

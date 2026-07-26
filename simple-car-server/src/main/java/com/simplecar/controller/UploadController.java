@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.Map;
 
 @Tag(name = "通用接口")
@@ -25,10 +24,6 @@ public class UploadController {
         if (file.isEmpty()) {
             return ApiResponse.error("上传文件不能为空");
         }
-        try {
-            return ApiResponse.success(uploadService.upload(file));
-        } catch (IOException e) {
-            return ApiResponse.error("文件上传失败: " + e.getMessage());
-        }
+        return ApiResponse.success(uploadService.upload(file));
     }
 }

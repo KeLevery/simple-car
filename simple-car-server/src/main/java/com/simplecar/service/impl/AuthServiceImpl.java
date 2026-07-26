@@ -9,6 +9,7 @@ import com.simplecar.mapper.VehicleMileageMapper;
 import com.simplecar.model.dto.LoginRequest;
 import com.simplecar.model.entity.User;
 import com.simplecar.model.entity.UserVehicle;
+import com.simplecar.exception.BusinessException;
 import com.simplecar.model.entity.Vehicle;
 import com.simplecar.service.AuthService;
 import com.simplecar.util.JwtUtils;
@@ -41,13 +42,13 @@ public class AuthServiceImpl implements AuthService {
     public String login(LoginRequest loginRequest) {
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, loginRequest.getUsername()));
         if (user == null) {
-            throw new RuntimeException("用户不存在");
+            throw new BusinessException(401, "用户名或密码错误");
         }
         if (!matchesPassword(loginRequest.getPassword(), user.getPassword())) {
-            throw new RuntimeException("密码错误");
+            throw new BusinessException(401, "用户名或密码错误");
         }
         if (user.getStatus() != null && user.getStatus() == 0) {
-            throw new RuntimeException("账号已被禁用");
+            throw new BusinessException(401, "账号已被禁用");
         }
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                 loginRequest.getUsername(), null, Collections.emptyList());

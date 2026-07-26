@@ -58,7 +58,7 @@ class AuthServiceImplTest {
 
         RuntimeException error = assertThrows(RuntimeException.class, () -> service.login(loginRequest("13800000000", "bad")));
 
-        assertEquals("密码错误", error.getMessage());
+        assertEquals("用户名或密码错误", error.getMessage());
     }
 
     @Test
@@ -85,7 +85,7 @@ class AuthServiceImplTest {
 
         RuntimeException error = assertThrows(RuntimeException.class, () -> service.login(loginRequest("13800000000", "123456")));
 
-        assertEquals("密码错误", error.getMessage());
+        assertEquals("用户名或密码错误", error.getMessage());
     }
 
     @Test
