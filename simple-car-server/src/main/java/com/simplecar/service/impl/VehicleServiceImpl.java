@@ -54,9 +54,26 @@ public class VehicleServiceImpl implements VehicleService {
         List<UserVehicle> userVehicles = userVehicleMapper.selectList(
                 new LambdaQueryWrapper<UserVehicle>().eq(UserVehicle::getUserId, userId));
         List<Map<String, Object>> result = new ArrayList<>();
+        if (userVehicles.isEmpty()) {
+            return result;
+        }
+
+        List<Long> carIds = userVehicles.stream()
+                .map(UserVehicle::getCarId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (carIds.isEmpty()) {
+            return result;
+        }
+
+        Map<Long, Vehicle> vehiclesById = new HashMap<>();
+        for (Vehicle vehicle : vehicleMapper.selectBatchIds(carIds)) {
+            vehiclesById.put(vehicle.getId(), vehicle);
+        }
 
         for (UserVehicle uv : userVehicles) {
-            Vehicle car = vehicleMapper.selectById(uv.getCarId());
+            Vehicle car = vehiclesById.get(uv.getCarId());
             if (car != null) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", uv.getId());

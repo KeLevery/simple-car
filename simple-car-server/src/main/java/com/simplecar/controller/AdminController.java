@@ -10,7 +10,6 @@ import com.simplecar.mapper.ServiceStationMapper;
 import com.simplecar.mapper.UserMapper;
 import com.simplecar.mapper.UserVehicleMapper;
 import com.simplecar.mapper.VehicleMapper;
-import com.simplecar.model.entity.ChargingOrder;
 import com.simplecar.model.entity.ChargingStation;
 import com.simplecar.model.entity.CommunityPost;
 import com.simplecar.model.entity.MaintenanceAppointment;
@@ -44,6 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Tag(name = "后台管理")
 @RestController
@@ -77,18 +77,6 @@ public class AdminController {
     @Operation(summary = "后台总览")
     @GetMapping("/overview")
     public ApiResponse<Map<String, Object>> overview() {
-        List<ChargingOrder> chargingOrders = chargingOrderMapper.selectList(null);
-        List<MaintenanceAppointment> appointments = appointmentMapper.selectList(null);
-
-        BigDecimal chargingRevenue = chargingOrders.stream()
-                .map(ChargingOrder::getActualPaymentAmount)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal maintenanceRevenue = appointments.stream()
-                .map(MaintenanceAppointment::getTotalAmount)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("userCount", userMapper.selectCount(null));
         data.put("vehicleCount", vehicleMapper.selectCount(null));
@@ -97,11 +85,9 @@ public class AdminController {
         data.put("chargingStationCount", chargingStationMapper.selectCount(null));
         data.put("serviceStationCount", serviceStationMapper.selectCount(null));
         data.put("postCount", communityPostMapper.selectCount(null));
-        data.put("chargingRevenue", chargingRevenue);
-        data.put("maintenanceRevenue", maintenanceRevenue);
-        data.put("todayAppointmentCount", appointments.stream()
-                .filter(item -> LocalDate.now().equals(item.getAppointDate()))
-                .count());
+        data.put("chargingRevenue", chargingOrderMapper.selectTotalActualPaymentAmount());
+        data.put("maintenanceRevenue", appointmentMapper.selectTotalAmount());
+        data.put("todayAppointmentCount", appointmentMapper.selectCountByAppointDate(LocalDate.now()));
         data.put("pendingRescueCount", rescueRequestMapper.selectCount(
                 new LambdaQueryWrapper<RescueRequest>().eq(RescueRequest::getStatus, 0)
         ));
@@ -213,8 +199,24 @@ public class AdminController {
         if (userId != null) {
             wrapper.eq(UserVehicle::getUserId, userId);
         }
-        List<Map<String, Object>> vehicles = userVehicleMapper.selectList(wrapper).stream()
-                .map(this::vehicleView)
+        List<UserVehicle> relations = userVehicleMapper.selectList(wrapper);
+        if (relations.isEmpty()) {
+            return ApiResponse.success(List.of());
+        }
+
+        List<Long> carIds = relations.stream().map(UserVehicle::getCarId).distinct().toList();
+        Map<Long, Vehicle> vehicleById = vehicleMapper.selectBatchIds(carIds).stream()
+                .collect(Collectors.toMap(Vehicle::getId, vehicle -> vehicle));
+        List<Long> userIds = relations.stream().map(UserVehicle::getUserId).distinct().toList();
+        Map<Long, User> userById = userMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, user -> user));
+
+        List<Map<String, Object>> vehicles = relations.stream()
+                .map(relation -> vehicleView(
+                        relation,
+                        vehicleById.get(relation.getCarId()),
+                        userById.get(relation.getUserId())
+                ))
                 .filter(Objects::nonNull)
                 .toList();
         return ApiResponse.success(vehicles);
@@ -442,11 +444,15 @@ public class AdminController {
 
     private Map<String, Object> vehicleView(UserVehicle relation) {
         Vehicle vehicle = vehicleMapper.selectById(relation.getCarId());
+        User user = userMapper.selectById(relation.getUserId());
+        return vehicleView(relation, vehicle, user);
+    }
+
+    private Map<String, Object> vehicleView(UserVehicle relation, Vehicle vehicle, User user) {
         if (vehicle == null) {
             return null;
         }
         Map<String, Object> item = vehicleOnlyView(vehicle);
-        User user = userMapper.selectById(relation.getUserId());
         item.put("relationId", relation.getId());
         item.put("userId", relation.getUserId());
         item.put("userName", user == null ? "-" : user.getNickName());

@@ -2,11 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { adminApi } from '@/api/admin'
 import AdminShell from '@/components/AdminShell.vue'
 import LoginView from '@/views/LoginView.vue'
-import DashboardView from '@/views/DashboardView.vue'
-import UsersView from '@/views/UsersView.vue'
-import VehiclesView from '@/views/VehiclesView.vue'
-import OperationsView from '@/views/OperationsView.vue'
-import CommunityView from '@/views/CommunityView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -22,11 +17,11 @@ export const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         { path: '', redirect: '/dashboard' },
-        { path: 'dashboard', name: 'dashboard', component: DashboardView },
-        { path: 'users', name: 'users', component: UsersView },
-        { path: 'vehicles', name: 'vehicles', component: VehiclesView },
-        { path: 'operations', name: 'operations', component: OperationsView },
-        { path: 'community', name: 'community', component: CommunityView }
+        { path: 'dashboard', name: 'dashboard', component: () => import('@/views/DashboardView.vue') },
+        { path: 'users', name: 'users', component: () => import('@/views/UsersView.vue') },
+        { path: 'vehicles', name: 'vehicles', component: () => import('@/views/VehiclesView.vue') },
+        { path: 'operations', name: 'operations', component: () => import('@/views/OperationsView.vue') },
+        { path: 'community', name: 'community', component: () => import('@/views/CommunityView.vue') }
       ]
     }
   ]

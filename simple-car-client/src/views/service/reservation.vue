@@ -74,7 +74,7 @@
 
 		<!-- 5 -->
 		<van-popup v-model:show="showTime" position="bottom">
-			<van-datetime-picker type="time" :min-hour="minHour" :min-minute="minMinutes" @confirm="timeConfirm"
+			<van-time-picker :min-hour="minHour" :min-minute="minMinutes" @confirm="timeConfirm"
 				@cancel="showTime=false" />
 		</van-popup>
 
@@ -129,9 +129,6 @@ import {
 		commonUpload
 	} from '@/api/service'
 import SignBoard from '@/components/SignBoard.vue';
-import {
-		Col
-	} from 'vant';
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
@@ -252,9 +249,8 @@ function currentTime() {
 				let current = year + "-" + month + "-" + date;
 				return current;
 			}
-function timeConfirm(e) {
-				console.log(e);
-				appointTime.value = e;
+function timeConfirm({ selectedValues }) {
+				appointTime.value = selectedValues.join(':');
 				showTime.value = false;
 			}
 function getCarList() {

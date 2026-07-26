@@ -7,11 +7,9 @@ import com.simplecar.mapper.UserVehicleMapper;
 import com.simplecar.mapper.VehicleMapper;
 import com.simplecar.mapper.VehicleMileageMapper;
 import com.simplecar.model.dto.LoginRequest;
-import com.simplecar.model.entity.ChargingOrder;
 import com.simplecar.model.entity.User;
 import com.simplecar.model.entity.UserVehicle;
 import com.simplecar.model.entity.Vehicle;
-import com.simplecar.model.entity.VehicleMileage;
 import com.simplecar.service.AuthService;
 import com.simplecar.util.JwtUtils;
 import lombok.RequiredArgsConstructor;
@@ -80,23 +78,8 @@ public class AuthServiceImpl implements AuthService {
             List<Long> carIds = userVehicles.stream().map(UserVehicle::getCarId).collect(Collectors.toList());
             vehicles = vehicleMapper.selectBatchIds(carIds);
 
-            for (Long carId : carIds) {
-                List<ChargingOrder> orders = chargingOrderMapper.selectList(
-                        new LambdaQueryWrapper<ChargingOrder>().eq(ChargingOrder::getCarId, carId));
-                for (ChargingOrder order : orders) {
-                    if (order.getChargedQuantity() != null) {
-                        totalCharged = totalCharged.add(order.getChargedQuantity());
-                    }
-                }
-                VehicleMileage maxMileage = vehicleMileageMapper.selectOne(
-                        new LambdaQueryWrapper<VehicleMileage>()
-                                .eq(VehicleMileage::getCarId, carId)
-                                .orderByDesc(VehicleMileage::getCarMileage)
-                                .last("limit 1"));
-                if (maxMileage != null && maxMileage.getCarMileage() != null) {
-                    totalMileage = totalMileage.add(maxMileage.getCarMileage());
-                }
-            }
+            totalCharged = chargingOrderMapper.selectTotalChargedQuantityByCarIds(carIds);
+            totalMileage = vehicleMileageMapper.selectTotalMaxMileageByCarIds(carIds);
         }
 
         Map<String, Object> stats = new HashMap<>();

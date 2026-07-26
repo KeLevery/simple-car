@@ -68,11 +68,12 @@ import {
 } from '@/api/analysis';
 import { graphic, init as initEcharts } from '@/util/echarts';
 import Tabbar from "@/components/Tabbar.vue"
-import { nextTick, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const firstChartEl = ref(null)
 const secondChartEl = ref(null)
-const active = ref('/analysis')
+let firstChart
+let secondChart
 const updateTime = ref('')
 const MarchTotal = ref(0)
 const MayTotal = ref(0)
@@ -212,8 +213,9 @@ const option2 = ref({
 				]
 			})
 function initData() {
-			getMileageList();
-		}
+	getMileageList();
+	getOrderList();
+}
 function getMileageList() {
 			const carInfoLocal = window.localStorage.getItem('carInfo');
 			if (!carInfoLocal) return;
@@ -250,7 +252,6 @@ function getMileageList() {
 						option2.value.series[1].data[1] = MayTotal.value;
 					}
 
-					getOrderList();
 				}
 			});
 		}
@@ -311,17 +312,34 @@ function getOrderList() {
 			});
 		}
 function initCharts() {
-			initChart('firstChartEl', option.value);
-			initChart('secondChartEl', option2.value);
-		}
-function initChart(refName, option) {
-			const chartEl = refName === 'firstChartEl' ? firstChartEl.value : secondChartEl.value;
-			if (chartEl) {
-				const chart = initEcharts(chartEl);
-				chart.setOption(option);
-			}
-		}
-initData();
+	firstChart = initChart(firstChartEl.value, firstChart, option.value);
+	secondChart = initChart(secondChartEl.value, secondChart, option2.value);
+}
+
+function initChart(chartEl, chart, chartOption) {
+	if (!chartEl) return chart;
+	const instance = chart || initEcharts(chartEl);
+	instance.setOption(chartOption);
+	return instance;
+}
+
+function resizeCharts() {
+	firstChart?.resize();
+	secondChart?.resize();
+}
+
+onMounted(() => {
+	window.addEventListener('resize', resizeCharts);
+	initData();
+});
+
+onBeforeUnmount(() => {
+	window.removeEventListener('resize', resizeCharts);
+	firstChart?.dispose();
+	secondChart?.dispose();
+	firstChart = undefined;
+	secondChart = undefined;
+});
 </script>
 
 <style scoped lang="scss">
