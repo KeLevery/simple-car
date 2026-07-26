@@ -38,6 +38,13 @@ const carStateLabels: Record<string, string> = {
   '3': '启动'
 }
 
+const carStateTones: Record<string, string> = {
+  '0': 'muted',
+  '1': 'success',
+  '2': 'info',
+  '3': 'warning'
+}
+
 const columns = [
   { key: 'id', label: 'ID' },
   { key: 'userId', label: '用户ID' },
@@ -187,7 +194,7 @@ function vehicleUser(row: VehicleItem): UserItem {
     <template #remainingPower="{ value }">{{ value ?? 0 }}%</template>
     <template #enduranceMileage="{ value }">{{ value ?? 0 }} km</template>
     <template #carState="{ value }">
-      <StatusBadge :value="Number(value)" :labels="carStateLabels" />
+      <StatusBadge :value="Number(value)" :labels="carStateLabels" :tones="carStateTones" />
     </template>
     <template #actions="{ row }">
       <div class="row-actions">

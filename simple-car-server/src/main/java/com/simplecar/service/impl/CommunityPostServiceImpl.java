@@ -7,6 +7,7 @@ import com.simplecar.mapper.CommunityPostMapper;
 import com.simplecar.mapper.CommunityPostLikeMapper;
 import com.simplecar.service.CommunityPostService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +43,12 @@ public class CommunityPostServiceImpl implements CommunityPostService {
             like.setPostId(postId);
             like.setUserId(userId);
             like.setCreateTime(LocalDateTime.now());
-            likeMapper.insert(like);
+            try {
+                likeMapper.insert(like);
+            } catch (DuplicateKeyException e) {
+                // 并发下另一请求已点赞（uk_post_user 唯一索引兜底），无需重复计数
+                return;
+            }
             postMapper.incrementLikeCount(postId);
         } else {
             likeMapper.deleteById(existing.getId());
