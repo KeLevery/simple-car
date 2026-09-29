@@ -13,6 +13,8 @@
 			<van-list
 				v-model:loading="loading"
 				:finished="finished"
+				v-model:error="listError"
+				error-text="加载失败，点击重试"
 				finished-text="没有更多了"
 				@load="onLoad"
 			>
@@ -51,6 +53,7 @@ const list = ref<NoticeItem[]>([])
 const loading = ref(false)
 const refreshing = ref(false)
 const finished = ref(false)
+const listError = ref(false)
 const pageNum = ref(1)
 const pageSize = 10
 function onLoad() {
@@ -70,7 +73,8 @@ function onLoad() {
 				loading.value = false
 				refreshing.value = false
 			}).catch(() => {
-				finished.value = true
+				// 失败置 error 而非 finished，van-list 会展示"点击重试"
+				listError.value = true
 				loading.value = false
 				refreshing.value = false
 			})
@@ -78,6 +82,7 @@ function onLoad() {
 function onRefresh() {
 			pageNum.value = 1
 			finished.value = false
+			listError.value = false
 			onLoad()
 		}
 function getTypeName(type: unknown) {

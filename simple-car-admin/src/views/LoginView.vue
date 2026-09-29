@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive, shallowRef } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { LogIn, ShieldCheck } from 'lucide-vue-next'
 import { login } from '@/api/admin'
 import { setAdminToken } from '@/api/token'
 
 const router = useRouter()
+const route = useRoute()
 const form = reactive({
   username: '',
   password: ''
@@ -15,6 +16,13 @@ const error = shallowRef('')
 
 const canSubmit = computed(() => form.username.trim().length > 0 && form.password.length > 0 && !loading.value)
 
+function safeRedirectPath(): string {
+  // 仅允许站内路径，防止开放重定向
+  const raw = route.query.redirect
+  const path = typeof raw === 'string' ? raw : ''
+  return path.startsWith('/') && !path.startsWith('//') ? path : ''
+}
+
 async function submit() {
   if (!canSubmit.value) return
   loading.value = true
@@ -22,7 +30,12 @@ async function submit() {
   try {
     const data = await login(form.username.trim(), form.password)
     setAdminToken(data.token)
-    router.push({ name: 'dashboard' })
+    const target = safeRedirectPath()
+    if (target) {
+      window.location.assign(target)
+    } else {
+      router.push({ name: 'dashboard' })
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : '登录失败，请检查账号或密码'
   } finally {

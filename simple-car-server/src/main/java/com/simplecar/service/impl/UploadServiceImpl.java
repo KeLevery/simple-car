@@ -1,5 +1,6 @@
 package com.simplecar.service.impl;
 
+import com.simplecar.exception.BusinessException;
 import com.simplecar.service.UploadService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,7 @@ public class UploadServiceImpl implements UploadService {
             extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase(Locale.ROOT);
         }
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new RuntimeException("不支持的文件类型");
+            throw new BusinessException("不支持的文件类型");
         }
 
         String fileName = UUID.randomUUID().toString() + extension;
@@ -46,7 +47,7 @@ public class UploadServiceImpl implements UploadService {
         try {
             Files.write(path, file.getBytes());
         } catch (IOException e) {
-            throw new RuntimeException("文件上传失败");
+            throw new BusinessException("文件上传失败");
         }
 
         String relativeUrl = "/uploads/" + fileName;

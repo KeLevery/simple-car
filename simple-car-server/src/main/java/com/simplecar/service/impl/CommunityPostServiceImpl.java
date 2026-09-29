@@ -3,6 +3,7 @@ package com.simplecar.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.simplecar.exception.BusinessException;
 import com.simplecar.model.entity.CommunityPost;
 import com.simplecar.model.entity.CommunityPostLike;
 import com.simplecar.mapper.CommunityPostMapper;
@@ -38,6 +39,11 @@ public class CommunityPostServiceImpl implements CommunityPostService {
     @Override
     @Transactional
     public void toggleLike(Long postId, Long userId) {
+        // 帖子不存在时直接拒绝，避免点赞脏数据触发外键裸 500 / 静默成功
+        if (postMapper.selectById(postId) == null) {
+            throw new BusinessException(404, "帖子不存在或已删除");
+        }
+
         LambdaQueryWrapper<CommunityPostLike> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(CommunityPostLike::getPostId, postId)
                .eq(CommunityPostLike::getUserId, userId);

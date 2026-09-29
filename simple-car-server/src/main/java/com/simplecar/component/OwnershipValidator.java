@@ -1,5 +1,6 @@
 package com.simplecar.component;
 
+import com.simplecar.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.simplecar.mapper.UserVehicleMapper;
 import com.simplecar.model.entity.UserVehicle;
@@ -18,13 +19,13 @@ public class OwnershipValidator {
     public void requireCarOwnership(Long carId) {
         Long userId = SecurityUtils.getCurrentUserId();
         if (userId == null) {
-            throw new RuntimeException("未登录");
+            throw new BusinessException(401, "未登录");
         }
         Long count = userVehicleMapper.selectCount(new LambdaQueryWrapper<UserVehicle>()
                 .eq(UserVehicle::getUserId, userId)
                 .eq(UserVehicle::getCarId, carId));
         if (count == null || count == 0) {
-            throw new RuntimeException("无权访问该车辆");
+            throw new BusinessException(403, "无权访问该车辆");
         }
     }
 }

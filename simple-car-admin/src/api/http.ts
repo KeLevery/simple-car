@@ -23,7 +23,9 @@ http.interceptors.request.use((config) => {
 function handleUnauthorized(message?: string) {
   clearAdminToken()
   if (window.location.pathname !== '/login') {
-    window.location.assign('/login')
+    // 带上回跳路径，登录成功后返回原页面
+    const redirect = encodeURIComponent(window.location.pathname + window.location.search)
+    window.location.assign(`/login?redirect=${redirect}`)
   }
   return Promise.reject(new Error(message || '登录已过期'))
 }

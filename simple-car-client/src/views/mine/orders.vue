@@ -10,13 +10,15 @@
 		/>
 
 		<van-tabs v-model:active="activeTab" sticky offset-top="46" color="#00d4ff" background="#111827">
-			<van-tab title="全部订单">
-				<van-list
-					v-model:loading="loading"
-					:finished="finished"
-					finished-text="没有更多了"
-					@load="fetchOrders"
-				>
+				<van-tab title="全部订单">
+					<van-list
+						v-model:loading="loading"
+						:finished="finished"
+						v-model:error="listError"
+						error-text="加载失败，点击重试"
+						finished-text="没有更多了"
+						@load="fetchOrders"
+					>
 					<div class="order-list" v-if="orders.length > 0">
 						<div v-for="order in orders" :key="order.uid || order.id" class="order-card">
 							<div class="order-header">
@@ -39,13 +41,15 @@
 			<van-tab title="进行中">
 				<van-empty description="暂无进行中的订单" />
 			</van-tab>
-			<van-tab title="已完成">
-				<van-list
-					v-model:loading="completedLoading"
-					:finished="completedFinished"
-					finished-text="没有更多了"
-					@load="fetchCompletedOrders"
-				>
+				<van-tab title="已完成">
+					<van-list
+						v-model:loading="completedLoading"
+						:finished="completedFinished"
+						v-model:error="completedError"
+						error-text="加载失败，点击重试"
+						finished-text="没有更多了"
+						@load="fetchCompletedOrders"
+					>
 					<div class="order-list" v-if="completedOrders.length > 0">
 						<div v-for="order in completedOrders" :key="order.uid || order.id" class="order-card">
 							<div class="order-header">
@@ -119,6 +123,8 @@ const completedOrders = ref<OrderItem[]>([])
 const completedLoading = ref(false)
 const completedFinished = ref(false)
 const completedPageNum = ref(1)
+const listError = ref(false)
+const completedError = ref(false)
 async function fetchOrders() {
 			loading.value = true
 			try {
@@ -135,7 +141,8 @@ async function fetchOrders() {
 					finished.value = true
 				}
 			} catch {
-				finished.value = true
+				// 失败置 error 而非 finished，van-list 会展示"点击重试"
+				listError.value = true
 			} finally {
 				loading.value = false
 			}
@@ -156,7 +163,7 @@ async function fetchCompletedOrders() {
 					completedFinished.value = true
 				}
 			} catch {
-				completedFinished.value = true
+				completedError.value = true
 			} finally {
 				completedLoading.value = false
 			}

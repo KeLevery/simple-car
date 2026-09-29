@@ -1,6 +1,7 @@
 package com.simplecar.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.simplecar.exception.BusinessException;
 import com.simplecar.model.entity.User;
 import com.simplecar.model.entity.UserSettings;
 import com.simplecar.mapper.UserMapper;
@@ -36,6 +37,10 @@ public class UserServiceImpl implements UserService {
     public boolean changePassword(User user, String oldPassword, String newPassword) {
         if (!matchesPassword(oldPassword, user.getPassword())) {
             return false;
+        }
+        // 与注册规则保持一致：密码至少 6 位
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new BusinessException(400, "密码长度不能少于 6 位");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setUpdatedAt(LocalDateTime.now());

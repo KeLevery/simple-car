@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { createRescue, rescueList } from '@/api/rescue'
-import { ref } from 'vue'
+import { onUnmounted, ref } from 'vue'
 import { useVantCompat } from '@/composables/useVantCompat'
 import { useAuthStore, type UserInfo } from '@/stores/auth'
 
@@ -110,18 +110,23 @@ async function handleRescue() {
         loading.value = false
       }
     }
+// 模拟定位的定时器：页面卸载时清理，避免离开后仍改状态/弹 toast
+let locateTimer: ReturnType<typeof setTimeout> | undefined
 function getLocation() {
       toast.loading({
         message: '获取定位中...',
         forbidClick: true
       })
-      
+
       // 模拟获取定位
-      setTimeout(() => {
+      locateTimer = setTimeout(() => {
         form.value.location = '江苏省南京市江宁区秣陵街道苏源大道'
         toast.success('已自动获取位置')
       }, 1000)
     }
+onUnmounted(() => {
+      if (locateTimer) clearTimeout(locateTimer)
+    })
 function getStatusName(status: number) {
       const map: Record<number, string> = {
         0: '待处理',

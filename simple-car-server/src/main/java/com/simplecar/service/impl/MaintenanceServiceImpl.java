@@ -1,5 +1,6 @@
 package com.simplecar.service.impl;
 
+import com.simplecar.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.simplecar.component.OwnershipValidator;
@@ -24,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 @Service
@@ -45,7 +47,15 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         ownershipValidator.requireCarOwnership(request.getCarId());
 
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-M-d");
-        LocalDate appointDate = LocalDate.parse(request.getAppointDateStr(), dateFormatter);
+        LocalDate appointDate;
+        try {
+            appointDate = LocalDate.parse(request.getAppointDateStr(), dateFormatter);
+        } catch (DateTimeParseException e) {
+            throw new BusinessException(400, "预约日期格式有误");
+        }
+        if (appointDate.isBefore(LocalDate.now())) {
+            throw new BusinessException(400, "预约日期不能早于今天");
+        }
 
         MaintenanceAppointment appointment = new MaintenanceAppointment();
         appointment.setType(request.getType());
@@ -74,13 +84,13 @@ public class MaintenanceServiceImpl implements MaintenanceService {
             for (Map<String, Object> planMap : request.getPlanList()) {
                 Object id = planMap.get("id");
                 if (id == null) {
-                    throw new RuntimeException("维保计划不存在");
+                    throw new BusinessException("维保计划不存在");
                 }
                 planIds.add(Long.valueOf(id.toString()));
             }
             plans = planMapper.selectBatchIds(planIds);
             if (plans.size() != planIds.size()) {
-                throw new RuntimeException("维保计划不存在");
+                throw new BusinessException("维保计划不存在");
             }
             for (MaintenancePlan plan : plans) {
                 totalAmount = totalAmount.add(plan.getTotalPrice());
@@ -118,18 +128,31 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     }
 
     public Page<MaintenanceAppointment> getAppointmentPage(Long carId, Integer pageNum, Integer pageSize) {
-        Page<MaintenanceAppointment> page = new Page<>(pageNum, pageSize);
+        int num = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        int size = pageSize == null ? 10 : Math.max(1, Math.min(pageSize, 100));
+        Page<MaintenanceAppointment> page = new Page<>(num, size);
         LambdaQueryWrapper<MaintenanceAppointment> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(MaintenanceAppointment::getCarId, carId);
         wrapper.orderByDesc(MaintenanceAppointment::getCreatedAt);
         appointmentMapper.selectPage(page, wrapper);
 
-        for (MaintenanceAppointment appt : page.getRecords()) {
-            List<MaintenancePay> payList = payMapper.selectList(
+        // 批量查询当前页预约的支付单（取最新一条），避免逐条 N+1
+        List<Long> appointmentIds = page.getRecords().stream()
+                .map(MaintenanceAppointment::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (!appointmentIds.isEmpty()) {
+            List<MaintenancePay> pays = payMapper.selectList(
                     new LambdaQueryWrapper<MaintenancePay>()
-                            .eq(MaintenancePay::getMaintenanceAppointmentId, appt.getId())
+                            .in(MaintenancePay::getMaintenanceAppointmentId, appointmentIds)
                             .orderByDesc(MaintenancePay::getCreatedAt));
-            appt.setPayment(payList.isEmpty() ? null : payList.get(0));
+            Map<Long, MaintenancePay> latestByAppointment = new LinkedHashMap<>();
+            for (MaintenancePay p : pays) {
+                latestByAppointment.putIfAbsent(p.getMaintenanceAppointmentId(), p);
+            }
+            for (MaintenanceAppointment appt : page.getRecords()) {
+                appt.setPayment(latestByAppointment.get(appt.getId()));
+            }
         }
         return page;
     }
@@ -148,17 +171,17 @@ public class MaintenanceServiceImpl implements MaintenanceService {
     public boolean updatePayStatus(Long payId, Integer status) {
         MaintenancePay pay = payMapper.selectById(payId);
         if (pay == null) {
-            throw new RuntimeException("支付单不存在");
+            throw new BusinessException("支付单不存在");
         }
 
         Long appointmentId = pay.getMaintenanceAppointmentId();
         if (appointmentId == null) {
-            throw new RuntimeException("支付单关联预约不存在");
+            throw new BusinessException("支付单关联预约不存在");
         }
 
         MaintenanceAppointment appointment = appointmentMapper.selectById(appointmentId);
         if (appointment == null) {
-            throw new RuntimeException("支付单关联预约不存在");
+            throw new BusinessException("支付单关联预约不存在");
         }
 
         // 以支付单关联的预约车辆为准做归属校验，不信任客户端传的 appointmentId
@@ -166,17 +189,17 @@ public class MaintenanceServiceImpl implements MaintenanceService {
 
         // 状态机守卫：0未支付 1已支付 2已取消，已支付/已取消均为终态
         if (status == null || status < 0 || status > 2) {
-            throw new RuntimeException("非法的支付状态");
+            throw new BusinessException("非法的支付状态");
         }
         Integer current = pay.getStatus();
         if (current != null && current.equals(status)) {
             return true; // 幂等：重复提交同一状态直接成功
         }
         if (current != null && current == 1) {
-            throw new RuntimeException("订单已支付，不能重复操作");
+            throw new BusinessException("订单已支付，不能重复操作");
         }
         if (current != null && current == 2) {
-            throw new RuntimeException("订单已取消，不能修改状态");
+            throw new BusinessException("订单已取消，不能修改状态");
         }
 
         pay.setStatus(status);

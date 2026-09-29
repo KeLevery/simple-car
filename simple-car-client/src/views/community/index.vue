@@ -33,6 +33,8 @@
 					<van-list
 						v-model:loading="feedsLoading"
 						:finished="feedsFinished"
+						v-model:error="feedsError"
+						error-text="加载失败，点击重试"
 						finished-text="没有更多了"
 						@load="fetchPosts"
 					>
@@ -190,6 +192,7 @@ const banners = ref([
 const feeds = ref<FeedPost[]>([])
 const feedsLoading = ref(false)
 const feedsFinished = ref(false)
+const feedsError = ref(false)
 const feedsPageNum = ref(1)
 const pageSize = 10
 const showPublish = ref(false)
@@ -230,7 +233,8 @@ async function fetchPosts() {
 						feedsFinished.value = true
 					}
 				} catch {
-					feedsFinished.value = true
+					// 失败置 error 而非 finished，van-list 会展示"点击重试"
+					feedsError.value = true
 				} finally {
 					feedsLoading.value = false
 				}
@@ -238,13 +242,23 @@ async function fetchPosts() {
 function resetFeeds() {
 				feedsPageNum.value = 1
 				feedsFinished.value = false
+				feedsError.value = false
 				return fetchPosts()
 			}
+const liking = ref(false)
 async function toggleLike(post: FeedPost) {
-				const res = await toggleLikeApi(post.id);
-				if (res.code === 200) {
-					post.isLiked = !post.isLiked;
-					post.isLiked ? post.like++ : post.like--;
+				if (liking.value) return // 防连击导致点赞状态反复翻转
+				liking.value = true
+				try {
+					const res = await toggleLikeApi(post.id);
+					if (res.code === 200) {
+						post.isLiked = !post.isLiked;
+						post.isLiked ? post.like++ : post.like--;
+					}
+				} catch {
+					// 业务/网络错误已由 request 拦截器提示
+				} finally {
+					liking.value = false
 				}
 			}
 async function publishPost() {

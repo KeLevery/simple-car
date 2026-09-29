@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, shallowRef } from 'vue'
+import { computed, reactive, shallowRef, watch } from 'vue'
 import { CheckCircle2, Clock3, PauseCircle, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import {
   adminApi,
@@ -28,8 +28,6 @@ const rescues = usePagedResource<RescueItem>(adminApi.rescues)
 const chargingStations = usePagedResource<ChargingStationItem>(adminApi.chargingStations)
 const serviceStations = usePagedResource<ServiceStationItem>(adminApi.serviceStations)
 
-const resources = [appointments, rescues, chargingStations, serviceStations]
-
 const activeResource = computed(() => {
   if (activeTab.value === 'appointments') return appointments
   if (activeTab.value === 'rescues') return rescues
@@ -37,11 +35,21 @@ const activeResource = computed(() => {
   return serviceStations
 })
 
-// 共享搜索框：分发给四个列表各自的服务端 keyword
+// 共享搜索框：只对当前激活的列表发起请求（原先四个列表同时请求，3 个是浪费），
+// 切换 tab 时把共享关键词同步到新列表
+const sharedKeyword = shallowRef('')
 const query = computed({
-  get: () => appointments.keyword.value,
+  get: () => sharedKeyword.value,
   set: (value: string) => {
-    resources.forEach((resource) => resource.setKeyword(value))
+    sharedKeyword.value = value
+    activeResource.value.setKeyword(value)
+  }
+})
+
+watch(activeTab, () => {
+  const resource = activeResource.value
+  if (resource.keyword.value !== sharedKeyword.value) {
+    resource.setKeyword(sharedKeyword.value)
   }
 })
 

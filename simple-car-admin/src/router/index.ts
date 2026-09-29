@@ -29,8 +29,6 @@ export const router = createRouter({
   ]
 })
 
-const verifiedTokens = new Set<string>()
-
 /**
  * 仅认证类失败才清 token 登出：
  * - http.ts 对业务错误抛的是普通 Error（无 isAxiosError），如 403「无后台访问权限」
@@ -43,14 +41,12 @@ function isAuthFailure(err: unknown): boolean {
   return status === 401 || status === 403
 }
 
-async function verifyAdminToken(token: string) {
-  if (verifiedTokens.has(token)) return true
+// 每次导航都向后端校验会话，避免本地缓存导致服务端吊销/过期后守卫失效
+async function verifyAdminToken() {
   try {
     await adminApi.session()
-    verifiedTokens.add(token)
     return true
   } catch (err) {
-    verifiedTokens.delete(token)
     if (isAuthFailure(err)) {
       clearAdminToken()
       return false
@@ -66,11 +62,11 @@ router.beforeEach(async (to) => {
     return { name: 'login' }
   }
   if (to.name === 'login' && token) {
-    const valid = await verifyAdminToken(token)
+    const valid = await verifyAdminToken()
     return valid ? { name: 'dashboard' } : true
   }
   if (to.meta.requiresAuth && token) {
-    const valid = await verifyAdminToken(token)
+    const valid = await verifyAdminToken()
     if (!valid) {
       return { name: 'login' }
     }

@@ -64,8 +64,12 @@ function openEdit(row: UserItem) {
 
 async function saveUser() {
   const payload = { ...form }
-  if (editingId.value && !payload.password) {
-    delete payload.password
+  if (editingId.value) {
+    // 编辑时账号只读，不回传避免契约耦合
+    delete payload.username
+    if (!payload.password) {
+      delete payload.password
+    }
   }
   const ok = await mutate(() =>
     editingId.value ? adminApi.updateUser(editingId.value, payload) : adminApi.createUser(payload)

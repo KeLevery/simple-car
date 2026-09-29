@@ -182,7 +182,7 @@ function contactCS() {
 function clearCache() {
 			dialog.confirm({
 				title: '确认',
-				message: '确定要清除缓存吗？这将清除本地存储的车辆和用户数据（不影响登录状态）',
+				message: '确定要清除本地缓存吗？（当前仅清除通知提醒等偏好设置，不影响登录状态与车辆数据）',
 				confirmButtonText: '清除',
 				confirmButtonColor: '#2b6cb0'
 			}).then(() => {

@@ -1,5 +1,6 @@
 package com.simplecar.service.impl;
 
+import com.simplecar.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.simplecar.model.dto.AddVehicleRequest;
 import com.simplecar.model.entity.Vehicle;
@@ -42,7 +43,7 @@ public class VehicleServiceImpl implements VehicleService {
             return false;
         }
         if (car.getCarState() == 0) {
-            throw new RuntimeException("车辆已离线，无法启动");
+            throw new BusinessException("车辆已离线，无法启动");
         }
         if (car.getCarState() == 3) {
             return true; // 已处于启动状态，幂等返回

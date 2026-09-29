@@ -40,12 +40,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ApiResponse<Void> handleRuntime(RuntimeException e) {
-        log.warn("业务异常: {}", e.getMessage());
-        String message = e.getMessage();
-        if (message == null || message.isBlank()) {
-            message = "系统异常，请稍后重试";
-        }
-        return ApiResponse.error(message);
+        // 未归类为业务异常的运行时异常（NPE、解析失败等）不得把原始 message 返回给客户端
+        log.error("系统异常", e);
+        return ApiResponse.error("系统异常，请稍后重试");
     }
 
     @ExceptionHandler(Exception.class)

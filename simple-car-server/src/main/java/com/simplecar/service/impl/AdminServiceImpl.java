@@ -1,5 +1,6 @@
 package com.simplecar.service.impl;
 
+import com.simplecar.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.simplecar.mapper.ChargingOrderMapper;
@@ -29,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,11 +94,11 @@ public class AdminServiceImpl implements AdminService {
         String username = stringParam(params, "username");
         String password = stringParam(params, "password");
         if (username == null || password == null) {
-            throw new RuntimeException("账号和密码不能为空");
+            throw new BusinessException("账号和密码不能为空");
         }
         Long exists = userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
         if (exists > 0) {
-            throw new RuntimeException("账号已存在");
+            throw new BusinessException("账号已存在");
         }
 
         User user = new User();
@@ -115,7 +117,7 @@ public class AdminServiceImpl implements AdminService {
     public Map<String, Object> updateUser(Long id, Map<String, Object> params) {
         User user = userMapper.selectById(id);
         if (user == null) {
-            throw new RuntimeException("用户不存在");
+            throw new BusinessException("用户不存在");
         }
         user.setNickName(stringParam(params, "nickName"));
         user.setPhone(stringParam(params, "phone"));
@@ -132,7 +134,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public boolean updateUserStatus(Long id, Integer status) {
         if (status == null) {
-            throw new RuntimeException("状态不能为空");
+            throw new BusinessException("状态不能为空");
         }
         User user = new User();
         user.setId(id);
@@ -148,7 +150,20 @@ public class AdminServiceImpl implements AdminService {
                 new LambdaQueryWrapper<UserVehicle>().eq(UserVehicle::getUserId, id)
         );
         if (!relations.isEmpty()) {
-            vehicleMapper.deleteBatchIds(relations.stream().map(UserVehicle::getCarId).toList());
+            // 仅删除不再被其他用户关联的车辆，避免共享车辆被连带误删
+            List<Long> carIds = relations.stream().map(UserVehicle::getCarId).filter(Objects::nonNull).distinct().toList();
+            List<Long> deletableCarIds = new ArrayList<>();
+            for (Long carId : carIds) {
+                Long otherLinks = userVehicleMapper.selectCount(new LambdaQueryWrapper<UserVehicle>()
+                        .eq(UserVehicle::getCarId, carId)
+                        .ne(UserVehicle::getUserId, id));
+                if (otherLinks == null || otherLinks == 0) {
+                    deletableCarIds.add(carId);
+                }
+            }
+            if (!deletableCarIds.isEmpty()) {
+                vehicleMapper.deleteBatchIds(deletableCarIds);
+            }
         }
         userVehicleMapper.delete(new LambdaQueryWrapper<UserVehicle>().eq(UserVehicle::getUserId, id));
         return userMapper.deleteById(id) > 0;
@@ -190,7 +205,7 @@ public class AdminServiceImpl implements AdminService {
     public Map<String, Object> createVehicle(Map<String, Object> params) {
         Long userId = longParam(params, "userId");
         if (userId == null || userMapper.selectById(userId) == null) {
-            throw new RuntimeException("请选择有效用户");
+            throw new BusinessException("请选择有效用户");
         }
         Vehicle vehicle = new Vehicle();
         fillVehicle(vehicle, params);
@@ -211,7 +226,7 @@ public class AdminServiceImpl implements AdminService {
     public Map<String, Object> updateVehicle(Long id, Map<String, Object> params) {
         Vehicle vehicle = vehicleMapper.selectById(id);
         if (vehicle == null) {
-            throw new RuntimeException("车辆不存在");
+            throw new BusinessException("车辆不存在");
         }
         fillVehicle(vehicle, params);
         vehicle.setUpdatedAt(LocalDateTime.now());
@@ -223,7 +238,7 @@ public class AdminServiceImpl implements AdminService {
         Long userId = longParam(params, "userId");
         if (userId != null) {
             if (userMapper.selectById(userId) == null) {
-                throw new RuntimeException("请选择有效用户");
+                throw new BusinessException("请选择有效用户");
             }
             if (relation == null) {
                 relation = new UserVehicle();
@@ -265,7 +280,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public boolean updateAppointmentStatus(Long id, Integer status) {
         if (status == null) {
-            throw new RuntimeException("状态不能为空");
+            throw new BusinessException("状态不能为空");
         }
         MaintenanceAppointment appointment = new MaintenanceAppointment();
         appointment.setId(id);
@@ -291,7 +306,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public boolean updateRescueStatus(Long id, Integer status) {
         if (status == null) {
-            throw new RuntimeException("状态不能为空");
+            throw new BusinessException("状态不能为空");
         }
         RescueRequest rescue = new RescueRequest();
         rescue.setId(id);
@@ -327,7 +342,7 @@ public class AdminServiceImpl implements AdminService {
     public ChargingStation updateChargingStation(Long id, Map<String, Object> params) {
         ChargingStation station = chargingStationMapper.selectById(id);
         if (station == null) {
-            throw new RuntimeException("充电站不存在");
+            throw new BusinessException("充电站不存在");
         }
         fillChargingStation(station, params);
         chargingStationMapper.updateById(station);
@@ -337,7 +352,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public boolean updateChargingStationStatus(Long id, Integer status) {
         if (status == null) {
-            throw new RuntimeException("状态不能为空");
+            throw new BusinessException("状态不能为空");
         }
         ChargingStation station = new ChargingStation();
         station.setId(id);
@@ -376,7 +391,7 @@ public class AdminServiceImpl implements AdminService {
     public ServiceStation updateServiceStation(Long id, Map<String, Object> params) {
         ServiceStation station = serviceStationMapper.selectById(id);
         if (station == null) {
-            throw new RuntimeException("服务站不存在");
+            throw new BusinessException("服务站不存在");
         }
         fillServiceStation(station, params);
         serviceStationMapper.updateById(station);

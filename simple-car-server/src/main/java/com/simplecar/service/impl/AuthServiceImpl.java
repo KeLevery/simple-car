@@ -112,18 +112,18 @@ public class AuthServiceImpl implements AuthService {
         String phoneVal = phone == null ? "" : phone.trim();
 
         if (account.isEmpty() || rawPwd.isEmpty()) {
-            throw new RuntimeException("账号和密码不能为空");
+            throw new BusinessException("账号和密码不能为空");
         }
         if (account.length() != 11) {
-            throw new RuntimeException("请输入 11 位手机号");
+            throw new BusinessException("请输入 11 位手机号");
         }
         if (rawPwd.length() < 6) {
-            throw new RuntimeException("密码长度不能少于 6 位");
+            throw new BusinessException("密码长度不能少于 6 位");
         }
 
         User exists = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, account));
         if (exists != null) {
-            throw new RuntimeException("该手机号已注册");
+            throw new BusinessException("该手机号已注册");
         }
 
         User user = new User();

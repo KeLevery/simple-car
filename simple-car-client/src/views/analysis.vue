@@ -270,9 +270,11 @@ function getMileageList() {
 						option2.value.series[1].data[1] = MayTotal.value;
 					}
 
-				}
-			});
-		}
+					}
+				}).catch(() => {
+					// 失败时保持空态，错误提示已由 request 拦截器统一处理
+				});
+			}
 function getOrderList() {
 			if (!carStore.carInfo) return;
 			let carId = carStore.carInfo.carId;
@@ -327,6 +329,8 @@ function getOrderList() {
 						initCharts();
 					});
 				}
+			}).catch(() => {
+				// 失败时保持空态，错误提示已由 request 拦截器统一处理
 			});
 		}
 function initCharts() {
