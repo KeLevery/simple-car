@@ -6,7 +6,7 @@ Simple Car 是一个新能源汽车车主服务系统，包含车主端、后台
 
 ```text
 simple-car/
-├─ simple-car-client/    # 车主端前端，Vue 3 + Vite + Vant
+├─ simple-car-client/    # 车主端前端，Vue 3 + Vite + Vant 4 + TypeScript
 ├─ simple-car-admin/     # 后台管理前端，Vue 3 + Vite + TypeScript
 ├─ simple-car-server/    # 后端服务，Spring Boot 3 + MyBatis-Plus
 ├─ docs/                 # 项目设计和后续事项文档
@@ -15,7 +15,7 @@ simple-car/
 
 ## 技术栈
 
-- 车主端：Vue 3、Vue Router、Vuex、Vant、Axios、ECharts、Three.js
+- 车主端：Vue 3、TypeScript、Vue Router、Pinia、Vant 4、Axios、ECharts
 - 后台端：Vue 3、Vite、TypeScript、Vue Router、Axios、Lucide Icons
 - 后端：Java 17、Spring Boot 3.1、Spring Security、JWT、MyBatis-Plus
 - 数据库：MySQL 8
