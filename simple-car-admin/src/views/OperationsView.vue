@@ -124,6 +124,10 @@ const stationStatusLabels: Record<string, string> = {
 const loading = computed(() => activeResource.value.loading.value)
 
 const error = computed(() => activeResource.value.error.value)
+// 站点编辑对话框的错误来自被保存的资源本身
+const stationDialogError = computed(() =>
+  stationDialog.value === 'service' ? serviceStations.error.value : chargingStations.error.value
+)
 
 const stationDialogTitle = computed(() => {
   const prefix = editingStationId.value ? '编辑' : '新增'
@@ -335,6 +339,7 @@ async function deleteServiceStation(row: ServiceStationItem) {
   <AdminDialog
     :open="Boolean(stationDialog)"
     :title="stationDialogTitle"
+    :error="stationDialogError"
     @close="stationDialog = null"
     @submit="saveStation"
   >

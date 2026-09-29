@@ -124,6 +124,7 @@ const carStore = useCarStore()
 const carId = ref<number>(0)
 const carState = ref<CarStateData>({})
 const activeControls = ref<Record<number, boolean>>({})
+const controlling = ref(false)
 const controlActions = ref<ControlAction[]>([
                 { label: '引擎启动', icon: 'fire-o', action: 'firing' },
                 { label: '灯光控制', icon: 'bulb-o', action: 'light' },
@@ -168,6 +169,7 @@ function fetchCarState() {
             }).catch(() => {});
         }
 function executeControl(item: ControlAction, index: number) {
+            if (controlling.value) return; // 指令下发中，忽略重复点击
             if (activeControls.value[index]) {
                 // Turn off
                 activeControls.value[index] = false;
@@ -175,8 +177,9 @@ function executeControl(item: ControlAction, index: number) {
                 return;
             }
             // Turn on
-            toast.loading({ message: item.label + '中...', forbidClick: true, duration: 1500 });
-            
+            controlling.value = true;
+            toast.loading({ message: item.label + '中...', forbidClick: true });
+
             doCarStart({ carId: carId.value, action: item.action }).then(res => {
                 if (res.code == 200) {
                     activeControls.value[index] = true;
@@ -184,6 +187,8 @@ function executeControl(item: ControlAction, index: number) {
                 }
             }).catch(() => {
                 // 业务/网络错误已由 request 拦截器提示
+            }).finally(() => {
+                controlling.value = false;
             });
         }
 function executeQuick(item: QuickFunction, index: number) {

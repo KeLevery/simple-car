@@ -129,8 +129,8 @@ function loadCarList() {
 						// Use the first car's carId by default
 						carId.value = data[0].car.carId || data[0].car.carID || 0;
 						chooseIndex.value = 0;
-						// Trigger the list loading
-						getRecordList();
+						// 不手动调 getRecordList：carList 渲染后 van-list 挂载会自动触发 @load，
+						// 手动调用会与之并发，导致第一页数据重复
 					} else {
 						finished.value = true;
 					}
@@ -152,30 +152,38 @@ function onSelectCar(item: CarAction) {
 				loading.value = false;
 				getRecordList();
 			}
+// 请求序号：丢弃切换车辆/翻页竞态中过期响应，防止旧数据拼入新列表
+let fetchSeq = 0
 function getRecordList() {
 				if (!carId.value) {
 					finished.value = true;
 					return;
 				}
+				const seq = ++fetchSeq;
+				loading.value = true;
 				appointmentList(carId.value, pageNum.value).then(res => {
+					if (seq !== fetchSeq) return;
 					if (res.code == 200) {
 						if (res.total > 0) {
 							historyTotal.value = res.total;
 							historyArr.value = historyArr.value.concat(res.rows as unknown as RecordItem[]);
 							pageNum.value++;
 						}
-						loading.value = false;
 						if (historyArr.value.length >= res.total) {
 							finished.value = true;
 						}
 					} else {
-						loading.value = false;
 						finished.value = true;
 					}
 				}).catch(err => {
 					console.error('Failed to load records:', err);
-					loading.value = false;
-					finished.value = true;
+					if (seq === fetchSeq) {
+						finished.value = true;
+					}
+				}).finally(() => {
+					if (seq === fetchSeq) {
+						loading.value = false;
+					}
 				});
 			}
 function statusClass(status: unknown) {

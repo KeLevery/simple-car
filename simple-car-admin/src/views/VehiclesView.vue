@@ -67,12 +67,17 @@ async function handleUserSelect(user: UserItem | null) {
   await loadVehicles()
 }
 
+// 请求序号：快速切换用户/翻页时丢弃过期响应，防止 A 用户的车辆渲染到 B 用户名下
+let vehicleSeq = 0
+
 async function loadVehicles() {
   if (!selectedUserId.value) {
+    vehicleSeq++
     vehicles.value = []
     total.value = 0
     return
   }
+  const seq = ++vehicleSeq
   loading.value = true
   error.value = ''
   try {
@@ -81,17 +86,23 @@ async function loadVehicles() {
       pageNum: pageNum.value,
       pageSize: pageSize.value
     })
+    if (seq !== vehicleSeq) return
     vehicles.value = result.rows
     total.value = result.total
     // 当前页被删空时回退到有效页
     if (result.rows.length === 0 && result.total > 0 && pageNum.value > 1) {
       pageNum.value = Math.max(1, Math.ceil(result.total / pageSize.value))
       await loadVehicles()
+      return
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : '车辆加载失败'
+    if (seq === vehicleSeq) {
+      error.value = err instanceof Error ? err.message : '车辆加载失败'
+    }
   } finally {
-    loading.value = false
+    if (seq === vehicleSeq) {
+      loading.value = false
+    }
   }
 }
 
@@ -248,7 +259,7 @@ function vehicleUser(row: VehicleItem): UserItem {
     />
   </template>
 
-  <AdminDialog :open="dialogOpen" :title="dialogTitle" @close="dialogOpen = false" @submit="saveVehicle">
+  <AdminDialog :open="dialogOpen" :title="dialogTitle" :error="error" @close="dialogOpen = false" @submit="saveVehicle">
     <label class="field">
       <span>所属用户</span>
       <UserSearchSelect

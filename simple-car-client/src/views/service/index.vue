@@ -46,7 +46,7 @@
 					<div class="service-name">一键救援</div>
 					<div class="service-desc">紧急求助</div>
 				</div>
-				<div class="service-item" @click="gotoPage('/service/purple')">
+				<div class="service-item" @click="gotoPage('/service/violation')">
 					<div class="service-icon purple">
 						<van-icon name="shield-check-o" />
 					</div>

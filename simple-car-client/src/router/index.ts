@@ -138,6 +138,12 @@ const routes: RouteRecordRaw[] = [
 		name: 'mine-addCar',
 		component: () => import('@/views/mine/addCar.vue'),
 		meta: { title: '添加车辆', keywords: ['绑定车辆'] }
+	},
+	// 兜底路由：未匹配的路径回首页，避免白屏
+	{
+		path: '/:pathMatch(.*)*',
+		name: 'not-found',
+		redirect: '/home'
 	}
 ]
 

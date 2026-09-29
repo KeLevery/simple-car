@@ -76,9 +76,10 @@ const form = ref({
       })
 const history = ref<RescueRecord[]>([])
 function initForm() {
-      const userInfo = auth.userInfo as (UserInfo & { nickname?: string; phone?: string }) | null
+      const userInfo = auth.userInfo as (UserInfo & { nickName?: string; userName?: string; phone?: string }) | null
       if (userInfo) {
-        form.value.contactName = userInfo.nickname || userInfo.username || ''
+        // 后端 getUserInfo 返回的字段是 nickName / phone
+        form.value.contactName = userInfo.nickName || userInfo.userName || ''
         form.value.contactPhone = userInfo.phone || ''
       }
     }
@@ -89,6 +90,7 @@ async function fetchHistory() {
       }
     }
 async function handleRescue() {
+      if (loading.value) return // 防止连击重复创建救援单
       if (!form.value.contactName || !form.value.contactPhone || !form.value.location) {
         toast('请填写完整的联系信息和位置')
         return

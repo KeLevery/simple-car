@@ -5,6 +5,7 @@ defineProps<{
   title: string
   open: boolean
   submitText?: string
+  error?: string
 }>()
 
 const emit = defineEmits<{
@@ -25,6 +26,8 @@ const emit = defineEmits<{
         </header>
         <form class="dialog-form" @submit.prevent="emit('submit')">
           <slot></slot>
+          <!-- 保存失败原因必须显示在遮罩之上，否则失败表现为"点了没反应" -->
+          <p v-if="error" class="inline-error dialog-error">{{ error }}</p>
           <footer class="dialog-actions">
             <button class="text-button" type="button" @click="emit('close')">取消</button>
             <button class="primary-button compact" type="submit">{{ submitText || '保存' }}</button>

@@ -18,7 +18,11 @@ export function usePagedResource<T>(loader: (query: PageQuery) => Promise<PageRe
 
   const hasData = computed(() => items.value.length > 0)
 
+  // 请求序号：翻页/搜索防抖并发时丢弃过期响应，防止旧数据覆盖新数据
+  let requestSeq = 0
+
   async function refresh() {
+    const seq = ++requestSeq
     loading.value = true
     error.value = ''
     try {
@@ -28,17 +32,23 @@ export function usePagedResource<T>(loader: (query: PageQuery) => Promise<PageRe
         pageSize: pageSize.value,
         ...(trimmed ? { keyword: trimmed } : {})
       })
+      if (seq !== requestSeq) return
       items.value = result.rows
       total.value = result.total
       // 当前页被删空（或越界）时回退到有效页
       if (result.rows.length === 0 && result.total > 0 && pageNum.value > 1) {
         pageNum.value = Math.max(1, Math.ceil(result.total / pageSize.value))
         await refresh()
+        return
       }
     } catch (err) {
-      error.value = err instanceof Error ? err.message : '加载失败'
+      if (seq === requestSeq) {
+        error.value = err instanceof Error ? err.message : '加载失败'
+      }
     } finally {
-      loading.value = false
+      if (seq === requestSeq) {
+        loading.value = false
+      }
     }
   }
 

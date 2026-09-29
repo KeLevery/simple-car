@@ -19,11 +19,16 @@ const loading = shallowRef(false)
 const panelOpen = shallowRef(false)
 const searchError = shallowRef('')
 let timer: ReturnType<typeof setTimeout> | undefined
+// 程序性写入 keyword（选中/清空/回显）不应触发搜索
+let skipSearch = false
+// 请求序号：快速输入并发搜索时丢弃过期响应
+let searchSeq = 0
 
 watch(
   () => props.selectedUser,
   (user) => {
     if (user) {
+      skipSearch = true
       keyword.value = formatUser(user)
     }
   },
@@ -31,6 +36,10 @@ watch(
 )
 
 watch(keyword, (value) => {
+  if (skipSearch) {
+    skipSearch = false
+    return
+  }
   if (timer) clearTimeout(timer)
   timer = setTimeout(() => searchUsers(value), 260)
 })
@@ -40,6 +49,7 @@ onBeforeUnmount(() => {
 })
 
 async function searchUsers(value = keyword.value) {
+  const seq = ++searchSeq
   loading.value = true
   searchError.value = ''
   try {
@@ -49,12 +59,16 @@ async function searchUsers(value = keyword.value) {
       pageNum: 1,
       pageSize: 20
     })
+    if (seq !== searchSeq) return
     matches.value = result.rows
   } catch (err) {
+    if (seq !== searchSeq) return
     matches.value = []
     searchError.value = err instanceof Error ? err.message : '搜索失败'
   } finally {
-    loading.value = false
+    if (seq === searchSeq) {
+      loading.value = false
+    }
   }
 }
 
@@ -71,6 +85,7 @@ async function openPanel() {
 
 function selectUser(user: UserItem) {
   model.value = user.id
+  skipSearch = true
   keyword.value = formatUser(user)
   panelOpen.value = false
   emit('select', user)
@@ -78,6 +93,7 @@ function selectUser(user: UserItem) {
 
 function clearUser() {
   model.value = null
+  skipSearch = true
   keyword.value = ''
   matches.value = []
   emit('select', null)

@@ -53,7 +53,7 @@
 					:rules="[{ validator:verifyPhone,required: true, message: '请输入正确的联系电话' }]" />
 
 				<div class="submitBox">
-					<van-button round block type="primary" native-type="submit">预约提交</van-button>
+					<van-button round block type="primary" native-type="submit" :loading="submitting" loading-text="提交中...">预约提交</van-button>
 				</div>
 			</van-form>
 		</div>
@@ -187,6 +187,7 @@ const carId = ref<number | string>(0)
 const minHour = ref<string | number>('')
 const pickCar = ref('1')
 const minMinutes = ref<string | number>('')
+const submitting = ref(false)
 function goBack() {
 				router.go(-1);
 			}
@@ -307,6 +308,8 @@ function verifyPhone(val: string) {
 				return pattern.test(val);
 			}
 function createOrder() {
+				if (submitting.value) return; // 防止重复提交
+				submitting.value = true;
 				if (mtType.value == '0') {
 					let formInfo = {
 						type: mtType.value, //类型
@@ -335,6 +338,8 @@ function createOrder() {
 								}
 							})
 						}
+					}).finally(() => {
+						submitting.value = false;
 					})
 				} else if (mtType.value == '1') {
 					let formInfo = {
@@ -367,9 +372,12 @@ function createOrder() {
 									}
 								})
 							}
+						}).finally(() => {
+							submitting.value = false;
 						})
 
 					} else {
+						submitting.value = false;
 						toast.fail('请确认签名！');
 					}
 				}
@@ -406,6 +414,10 @@ function cvsCfm(data: { canvas: HTMLCanvasElement }) {
 							signImg.value = '';
 							toast.fail('签名失败，请重试！');
 						}
+					}).catch(() => {
+						// 上传失败（拦截器已提示错误）：回退到可重新签名的状态，避免界面卡死
+						imgSrc.value = '';
+						signImg.value = '';
 					})
 				}
 			}

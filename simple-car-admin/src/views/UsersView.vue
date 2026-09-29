@@ -125,7 +125,7 @@ async function removeUser(user: UserItem) {
     @update:page-size="setPageSize"
   />
 
-  <AdminDialog :open="dialogOpen" :title="dialogTitle" @close="dialogOpen = false" @submit="saveUser">
+  <AdminDialog :open="dialogOpen" :title="dialogTitle" :error="error" @close="dialogOpen = false" @submit="saveUser">
     <label class="field">
       <span>账号</span>
       <input v-model="form.username" :disabled="Boolean(editingId)" required />

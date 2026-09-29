@@ -25,7 +25,7 @@
                     <div class="itemRight">银行卡[1127]</div>
                 </div>
                 <div class="payBtn">
-                    <van-button @click="payCmf" round block type="primary">确认交易</van-button>
+                    <van-button @click="payCmf" round block type="primary" :loading="paying" loading-text="支付中...">确认交易</van-button>
                 </div>
             </div>
         </van-popup>
@@ -58,10 +58,13 @@ const dialogShow = ref(false)
 const historyArr = ref<unknown[]>([])
 const orderId = ref(0)
 const payId = ref(0)
+const paying = ref(false)
 function goBack() {
             router.go(-1);
         }
 function payCmf() {
+            if (paying.value) return; // 防止重复支付
+            paying.value = true;
             paymentUpdate({
                 id: payId.value,
                 status: 1
@@ -72,6 +75,8 @@ function payCmf() {
                 }
             }).catch(() => {
                 // 业务/网络错误已由 request 拦截器提示
+            }).finally(() => {
+                paying.value = false;
             })
         }
 function noPay() {

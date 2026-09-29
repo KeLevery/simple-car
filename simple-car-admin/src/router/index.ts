@@ -31,16 +31,32 @@ export const router = createRouter({
 
 const verifiedTokens = new Set<string>()
 
+/**
+ * 仅认证类失败才清 token 登出：
+ * - http.ts 对业务错误抛的是普通 Error（无 isAxiosError），如 403「无后台访问权限」
+ * - axios 错误中 401/403 属认证失败；网络断开/超时/5xx 属瞬时故障，不应误杀登录态
+ */
+function isAuthFailure(err: unknown): boolean {
+  const axiosErr = err as { isAxiosError?: boolean; response?: { status?: number } } | null
+  if (!axiosErr?.isAxiosError) return true
+  const status = axiosErr.response?.status
+  return status === 401 || status === 403
+}
+
 async function verifyAdminToken(token: string) {
   if (verifiedTokens.has(token)) return true
   try {
     await adminApi.session()
     verifiedTokens.add(token)
     return true
-  } catch {
+  } catch (err) {
     verifiedTokens.delete(token)
-    clearAdminToken()
-    return false
+    if (isAuthFailure(err)) {
+      clearAdminToken()
+      return false
+    }
+    // 网络/服务器瞬时故障：放行，交给业务接口自身的 401 处理兜底
+    return true
   }
 }
 

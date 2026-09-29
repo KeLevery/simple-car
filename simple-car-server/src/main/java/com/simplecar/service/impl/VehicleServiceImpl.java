@@ -41,8 +41,11 @@ public class VehicleServiceImpl implements VehicleService {
         if (car == null) {
             return false;
         }
-        if (car.getCarState() == 1) {
+        if (car.getCarState() == 0) {
             throw new RuntimeException("车辆已离线，无法启动");
+        }
+        if (car.getCarState() == 3) {
+            return true; // 已处于启动状态，幂等返回
         }
         car.setCarState(3);
         car.setUpdatedAt(LocalDateTime.now());

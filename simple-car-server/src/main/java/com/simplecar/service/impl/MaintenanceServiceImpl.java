@@ -164,6 +164,21 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         // 以支付单关联的预约车辆为准做归属校验，不信任客户端传的 appointmentId
         ownershipValidator.requireCarOwnership(appointment.getCarId());
 
+        // 状态机守卫：0未支付 1已支付 2已取消，已支付/已取消均为终态
+        if (status == null || status < 0 || status > 2) {
+            throw new RuntimeException("非法的支付状态");
+        }
+        Integer current = pay.getStatus();
+        if (current != null && current.equals(status)) {
+            return true; // 幂等：重复提交同一状态直接成功
+        }
+        if (current != null && current == 1) {
+            throw new RuntimeException("订单已支付，不能重复操作");
+        }
+        if (current != null && current == 2) {
+            throw new RuntimeException("订单已取消，不能修改状态");
+        }
+
         pay.setStatus(status);
         if (status == 1) {
             pay.setPaidAt(LocalDateTime.now());
@@ -171,7 +186,8 @@ public class MaintenanceServiceImpl implements MaintenanceService {
         pay.setUpdatedAt(LocalDateTime.now());
         payMapper.updateById(pay);
 
-        if (status == 1) {
+        // 支付成功仅将待处理(0)的预约推进到处理中(1)，不回退已完成/已取消的预约
+        if (status == 1 && appointment.getStatus() != null && appointment.getStatus() == 0) {
             appointment.setStatus(1);
             appointment.setUpdatedAt(LocalDateTime.now());
             appointmentMapper.updateById(appointment);

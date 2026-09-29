@@ -156,16 +156,21 @@ const totalCharge = ref('0')
 const carCount = ref('0')
 const hasNewMsg = ref(true)
 function initProfile() {
-			const user = auth.userInfo as (UserInfo & { userName?: string; phonenumber?: string; avatar?: string }) | null;
+			const user = auth.userInfo as (UserInfo & { userName?: string; phone?: string; avatar?: string; stats?: { totalMileage?: number | string; totalCharged?: number | string; carCount?: number | string } }) | null;
 			if (user) {
 				nickName.value = user.nickName || user.userName || '';
-				phone.value = user.phonenumber ? user.phonenumber.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '';
+				// 后端 getUserInfo 返回的字段是 phone（不是 phonenumber）
+				phone.value = user.phone ? user.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') : '';
 				avatar.value = user.avatar || '';
 			}
-			carCount.value = String(carStore.carList.length);
-			if (carStore.carInfo) {
-				const car = carStore.carInfo as { totalMileage?: string | number };
-				totalMileage.value = String(car.totalMileage || '0');
+			// 统计数据来自后端 userInfo.stats（totalMileage/totalCharged/carCount）
+			const stats = user?.stats;
+			if (stats) {
+				totalMileage.value = String(stats.totalMileage ?? '0');
+				totalCharge.value = String(stats.totalCharged ?? '0');
+				carCount.value = String(stats.carCount ?? 0);
+			} else {
+				carCount.value = String(carStore.carList.length);
 			}
 		}
 function gotoPage(path: string) {

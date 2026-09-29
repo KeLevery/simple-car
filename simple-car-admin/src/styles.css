@@ -903,3 +903,7 @@ a:focus-visible {
     transition: none !important;
   }
 }
+
+.dialog-form .dialog-error {
+  margin: 12px 0 0;
+}

@@ -70,11 +70,15 @@ const statusOptions = ref([
         { text: '全部状态', value: 0 },
         { text: '有空闲', value: 1 },
       ])
+// 请求序号：快速切换城市/状态时丢弃过期响应，防止旧数据覆盖新数据
+let stationSeq = 0
 async function fetchStations() {
+      const seq = ++stationSeq
       const res = await stationList({
         cityId: cityValue.value,
         availableOnly: statusValue.value === 1
       })
+      if (seq !== stationSeq) return
       if (res.code === 200) {
         stations.value = res.data as Station[]
       }
