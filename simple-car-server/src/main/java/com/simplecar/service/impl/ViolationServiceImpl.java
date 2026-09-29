@@ -3,6 +3,7 @@ package com.simplecar.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.simplecar.component.OwnershipValidator;
 import com.simplecar.model.entity.UserVehicle;
 import com.simplecar.model.entity.VehicleViolation;
 import com.simplecar.mapper.UserVehicleMapper;
@@ -20,10 +21,12 @@ import java.util.stream.Collectors;
 public class ViolationServiceImpl implements ViolationService {
     private final VehicleViolationMapper violationMapper;
     private final UserVehicleMapper userVehicleMapper;
+    private final OwnershipValidator ownershipValidator;
 
     public Map<String, Object> getViolations(Long userId, Long carId, Integer pageNum, Integer pageSize) {
         List<Long> carIds;
         if (carId != null) {
+            ownershipValidator.requireCarOwnership(carId);
             carIds = List.of(carId);
         } else {
             List<UserVehicle> userVehicles = userVehicleMapper.selectList(

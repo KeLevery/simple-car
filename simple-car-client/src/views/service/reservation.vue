@@ -195,9 +195,10 @@ function gotoHistory() {
 					path: '/service/record'
 				});
 			}
-function cityConfirm(e: Array<{ name: string; code: string | number }>) {
-				city.value = e[1].name;
-				cityId.value = e[1].code as number;
+function cityConfirm({ selectedOptions }: { selectedOptions: Array<{ name: string; code: string | number }> }) {
+				const cityOption = selectedOptions[selectedOptions.length - 1];
+				city.value = cityOption.name;
+				cityId.value = cityOption.code as number;
 				showCity.value = false;
 				getStationList();
 			}
@@ -233,9 +234,9 @@ function chooseStation() {
 					toast("请选择城市")
 				}
 			}
-function stationConfirm(e: string, index: number) {
-				station.value = e;
-				stationId.value = stationData.value[index].id || 0;
+function stationConfirm({ selectedOptions, selectedIndexes }: { selectedOptions: Array<{ text?: string }>; selectedIndexes: number[] }) {
+				station.value = selectedOptions[0]?.text ?? '';
+				stationId.value = stationData.value[selectedIndexes[0]]?.id || 0;
 				showStation.value = false;
 			}
 function dateConfirm(e: Date) {
@@ -280,10 +281,10 @@ function getCarList() {
 					carList.value = columns;
 				})
 			}
-function carConfirm(e: string, index: number) {
-				car.value = e;
+function carConfirm({ selectedOptions, selectedIndexes }: { selectedOptions: Array<{ text?: string }>; selectedIndexes: number[] }) {
+				car.value = selectedOptions[0]?.text ?? '';
 				// 兼容 carID 和 carId 两种字段名
-				const picked = carData.value[index] || {};
+				const picked = carData.value[selectedIndexes[0]] || {};
 				carId.value = picked.carID || picked.carId || (picked.car && (picked.car.carId || picked.car.carID)) || 0;
 				licensetag.value = picked.car ? (picked.car.licenseTag || '') : '';
 				showCar.value = false;
@@ -325,7 +326,13 @@ function createOrder() {
 								message: '提交成功！'
 							});
 							router.push({
-								path: '/pay?money=' + (data?.paymentAmount || '') + '&payId=' + (data?.paymentId || '') + '&workNo=' + (data?.workNo || '') + '&orderId=' + (data?.id || '')
+								path: '/pay',
+								query: {
+									money: String(data?.paymentAmount ?? ''),
+									payId: String(data?.paymentId ?? ''),
+									workNo: String(data?.workNo ?? ''),
+									orderId: String(data?.id ?? '')
+								}
 							})
 						}
 					})
@@ -351,8 +358,13 @@ function createOrder() {
 									message: '提交成功！'
 								});
 								router.push({
-									path: '/pay?money=' + (data?.paymentAmount || '') + '&payId=' + (data
-										?.paymentId || '') + '&workNo=' + (data?.workNo || '') + '&orderId=' + (data?.id || '')
+									path: '/pay',
+									query: {
+										money: String(data?.paymentAmount ?? ''),
+										payId: String(data?.paymentId ?? ''),
+										workNo: String(data?.workNo ?? ''),
+										orderId: String(data?.id ?? '')
+									}
 								})
 							}
 						})
@@ -382,7 +394,9 @@ function cvsCfm(data: { canvas: HTMLCanvasElement }) {
 					formData.append('file', blob, `sign${new Date().getTime()}.png`)
 					commonUpload(formData).then(res => {
 						if (res.code == 200) {
-							signImg.value = (res as unknown as { fileName?: string }).fileName || '';
+							// 拦截器返回整个 {code,msg,data} 包体，fileName 在 data 层级
+							const uploadData = (res.data || {}) as { fileName?: string };
+							signImg.value = uploadData.fileName || '';
 							notify({
 								type: 'success',
 								message: '签名已上传！'
