@@ -50,18 +50,12 @@ import { useVantCompat } from '@/composables/useVantCompat'
 
 const router = useRouter()
 const route = useRoute()
-const { toast, notify, dialog } = useVantCompat()
+const { notify, dialog } = useVantCompat()
 const show = ref(true)
 const price = ref(1189)
-const radio = ref('1')
 const dialogShow = ref(false)
-const historyArr = ref<unknown[]>([])
-const orderId = ref(0)
 const payId = ref(0)
 const paying = ref(false)
-function goBack() {
-            router.go(-1);
-        }
 function payCmf() {
             if (paying.value) return; // 防止重复支付
             paying.value = true;
@@ -86,7 +80,6 @@ function giveUp() {
             router.push({path: '/home'})
         }
 payId.value = parseInt(route.query.payId as string)
-        orderId.value = parseInt(route.query.orderId as string)
         price.value = parseFloat(route.query.money as string)
 </script>
 

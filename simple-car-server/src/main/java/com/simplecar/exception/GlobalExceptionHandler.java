@@ -3,6 +3,7 @@ package com.simplecar.exception;
 import com.simplecar.result.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
@@ -36,6 +37,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ApiResponse<Void> handleAccessDenied(AccessDeniedException e) {
         return ApiResponse.error(403, "无访问权限");
+    }
+
+    @ExceptionHandler(DuplicateKeyException.class)
+    public ApiResponse<Void> handleDuplicateKey(DuplicateKeyException e) {
+        // 并发注册同名账号等场景，唯一索引兜底时返回友好提示而非 500
+        log.warn("唯一约束冲突: {}", e.getMessage());
+        return ApiResponse.error(400, "数据已存在，请勿重复提交");
     }
 
     @ExceptionHandler(RuntimeException.class)

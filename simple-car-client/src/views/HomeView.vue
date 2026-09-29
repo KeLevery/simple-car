@@ -114,7 +114,7 @@ import closeWindowIcon from '@/assets/closeWindow.png'
 import closeWindowActiveIcon from '@/assets/closeWindow_act.png'
 import closeTrunkIcon from '@/assets/closeTrunk.png'
 import closeTrunkActiveIcon from '@/assets/closeTrunk_act.png'
-import { computed, onActivated, ref } from 'vue'
+import { computed, onUnmounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useVantCompat } from '@/composables/useVantCompat'
 import { useAuthStore } from '@/stores/auth'
@@ -227,9 +227,15 @@ function getCarInfo() {
 		}
 initCarData();
 		checkLogin();
-onActivated(() => {
-		// Refresh car list when returning (e.g. after adding a car)
-		initCarData();
+// 无 keep-alive 时 onActivated 永不触发；改用路由回跳监听，
+// 从添加车辆页等返回首页时刷新选中车辆
+const stopRouteWatch = router.afterEach((to) => {
+		if (to.path === '/home') {
+			initCarData();
+		}
+	})
+onUnmounted(() => {
+		stopRouteWatch()
 	})
 </script>
 

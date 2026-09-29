@@ -103,9 +103,13 @@ function loginSubmit() {
 							}
 
 						getUserInfo();
+					} else {
+						toast.clear();
 					}
 				}).catch(() => {
-					// 业务/网络错误已由 request 拦截器提示
+					// 业务/网络错误已由 request 拦截器提示；
+					// 必须关掉 forbidClick 的 loading toast，否则页面被锁死
+					toast.clear();
 				})
 			}
 		}
@@ -132,10 +136,13 @@ function getUserInfo() {
 					auth.setLoginUser(user);
 					toast.success('登录成功');
 					router.push('/home')
+				} else {
+					toast.clear();
 				}
 			}).catch((err) => {
 				console.error('getUserInfo error:', err);
-				// 业务/网络错误已由 request 拦截器提示
+				// 业务/网络错误已由 request 拦截器提示；关掉 loading toast 防止页面锁死
+				toast.clear();
 			})
 		}
 checkLogin()

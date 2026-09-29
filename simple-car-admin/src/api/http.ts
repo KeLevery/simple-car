@@ -50,7 +50,11 @@ http.interceptors.response.use(
     if (status === 403 || result?.code === 403) {
       return Promise.reject(new Error(result?.msg || '无后台访问权限'))
     }
-    return Promise.reject(error)
+    // 非 401/403 的 HTTP 错误转为中文提示，避免界面直接显示英文报错
+    const message =
+      result?.msg ||
+      (status ? `系统接口 ${status} 异常` : '后端接口连接异常')
+    return Promise.reject(new Error(message))
   }
 )
 
